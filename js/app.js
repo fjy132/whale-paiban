@@ -50,7 +50,7 @@ const PLATFORM_CONFIG = {
 PLATFORM_CONFIG.wechat.label = '公众号';
 PLATFORM_CONFIG.xhs.label = '小红书';
 
-const MINI_SAMPLE = '一、标题样式示例\n（一）小标题样式\n这是用于模板预览的正文文字，用来展示段落与层级效果。\n- 列表项目示例';
+const MINI_SAMPLE = '鲸鱼排版小工具\n一、标题样式示例\n（一）小标题样式\n这是用于模板预览的正文文字，用来展示段落与层级效果。\n- 列表项目示例';
 
 const RISK_WORDS = ['最', '第一', '顶级', '国家级', '绝对', '唯一', '百分之百', '百分百', '全网最低', '史上最', '世界领先', '全球第一', '最好', '最佳', '极致', '无敌', '疗效', '根治', '治愈', '减肥', '美白', '祛痘', '丰胸', '壮阳', '抗癌', '防癌', '降血糖', '降血压', '治疗', '包治', '药到病除', '无效退款', '免费领取', '点击领取', '加微信', '微信号', '二维码', '转账', '收款', '返现', '刷单', '代购', '正品保证', '官方认证', '央视', '人民日报', '国家免检', '纯天然', '无副作用', '快速见效', '立竿见影', '秒杀', '特价'];
 
@@ -81,7 +81,9 @@ function applyTypeOverrides(style) {
   o.h3 = 'font-size:' + Math.max(13, Math.round(TYPE.h1Size * 0.76)) + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
   o.listItem = 'font-size:' + TYPE.baseSize + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
   o.listMarker = 'font-size:' + Math.max(10, Math.round(TYPE.baseSize * 0.9)) + 'px;';
-  o.spacing = 'height:' + Math.max(6, Math.round(TYPE.baseSize * 0.75)) + 'px;';
+  o.spacing = 'height:' + Math.max(6, Math.round(TYPE.baseSize * 0.75)) + 'px;'
+  if (!s.title && s.h1) s.title = s.h1;
+  o.title = 'font-size:' + Math.min(34, Math.round(TYPE.h1Size * 1.25)) + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + (Math.round((TYPE.letterSpacing + 0.25) * 10) / 10) + 'px;';
   Object.keys(o).forEach(k => { s[k] = (s[k] || '') + o[k]; });
   return s;
 }

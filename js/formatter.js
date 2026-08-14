@@ -22,6 +22,7 @@ function getDefaultStyle() {
     return {
         container: 'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; line-height: 1.75; color: #333333; font-size: 16px; padding: 20px; background: #ffffff;',
         h1: 'font-size: 20px; font-weight: bold; color: #2c3e50; margin: 20px 0 12px 0; padding-left: 12px; border-left: 4px solid #3498db; line-height: 1.6;',
+        title: 'font-size: 24px; font-weight: 800; color: #2c3e50; margin: 4px 0 18px 0; line-height: 1.45; letter-spacing: 0.5px;',
         h2: 'font-size: 18px; font-weight: bold; color: #34495e; margin: 16px 0 10px 0; padding-left: 10px; border-left: 3px solid #1abc9c; line-height: 1.6;',
         h3: 'font-size: 16px; font-weight: bold; color: #555555; margin: 14px 0 8px 0; padding-left: 8px; border-left: 2px solid #95a5a6; line-height: 1.6;',
         paragraph: 'font-size: 15px; color: #333333; line-height: 1.8; margin: 10px 0; text-align: justify;',
@@ -35,6 +36,7 @@ function getDefaultStyle() {
 /**
  * 解析并格式化文本
  * 规则：
+ *   首行短句(非编号/无句末标点/后面有正文) → 文章主标题 (h1)
  *   一、二、三…  → 一级标题 (h2)
  *   （一）（二） → 二级标题 (h3)，可带序号水印
  *   1、2、3…    → 三级标题 (h4)
@@ -42,11 +44,26 @@ function getDefaultStyle() {
  *   空行         → 间距分隔
  *   其余         → 普通段落 (p)
  */
+function isLikelyTitle(line, lines, i) {
+    const t = line.trim();
+    if (t.length < 2 || t.length > 30) return false;
+    if (/^[一二三四五六七八九十百千]+[、.．]/.test(t)) return false;
+    if (/^[（(][一二三四五六七八九十百千]+[）)]/.test(t)) return false;
+    if (/^\d+[、.．]/.test(t)) return false;
+    if (/^[-–—•]/.test(t)) return false;
+    if (/[。！？!?…；;，,：:]$/.test(t)) return false;
+    for (let k = i + 1; k < lines.length; k++) {
+        if (lines[k].trim()) return true;
+    }
+    return false;
+}
+
 function parseAndFormat(text, style) {
     const lines = String(text || '').split('\n');
     let html = '<div style="' + safeStyle(style.container) + '">';
     let inList = false;
     let h2Counter = 0;
+    let firstContentDone = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -59,6 +76,16 @@ function parseAndFormat(text, style) {
             html += '<div style="' + safeStyle(style.spacing) + '">' + spacingContent + '</div>';
             continue;
         }
+
+        // 文章主标题：首行短句（非编号、无句末标点、后面还有正文）
+        if (!firstContentDone && isLikelyTitle(trimmedLine, lines, i)) {
+            firstContentDone = true;
+            if (inList) { html += '</ul>'; inList = false; }
+            const titleStyle = style.title || style.h1 || '';
+            html += '<h1 style="' + safeStyle(titleStyle) + '">' + escapeHtml(trimmedLine) + '</h1>';
+            continue;
+        }
+        firstContentDone = true;
 
         // 一级标题：一、二、三…
         if (/^[一二三四五六七八九十百千]+[、.．]/.test(trimmedLine)) {
