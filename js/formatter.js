@@ -1,4 +1,4 @@
-﻿/**
+/**
  * formatter.js — 纯函数：解析文本并生成公众号可用的内联样式 HTML
  * 不依赖 DOM，可在 Node 中直接测试。
  */
@@ -37,21 +37,61 @@ function getDefaultStyle() {
  * 解析并格式化文本
  * 规则：
  *   首行短句(非编号/无句末标点/后面有正文) → 文章主标题 (h1)
- *   一、二、三…  → 一级标题 (h2)
- *   （一）（二） → 二级标题 (h3)，可带序号水印
- *   1、2、3…    → 三级标题 (h4)
- *   - 开头       → 列表项 (ul/li)
- *   空行         → 间距分隔
- *   其余         → 普通段落 (p)
+ *   # / ## / ###      → 主标题 / 一级 / 二级标题
+ *   **加粗** 独立行    → 一级标题
+ *   第X章 / Part N    → 一级标题
+ *   一、二、三…        → 一级标题 (h2)
+ *   （一）（二）       → 二级标题 (h3)，可带序号水印
+ *   1、2、3…          → 三级标题 (h4)
+ *   - 开头            → 列表项 (ul/li)
+ *   独立短句(前后有空行等) → 自动识别为小标题 (h2)
+ *   空行              → 间距分隔
+ *   其余              → 普通段落 (p)
  */
+
+const RE_TITLE_NUM = /^[一二三四五六七八九十百千]+[、.．]/;
+const RE_SUB_NUM = /^[（(][一二三四五六七八九十百千]+[）)]/;
+const RE_ORDER_NUM = /^\d+[、.．]/;
+const RE_LIST = /^[-*+\u2022\u2013\u2014]/;
+const RE_CHAPTER = /^第[一二三四五六七八九十百千0-9]+[章节部分篇]/;
+const RE_PART = /^(Part|Chapter|Section)\s*\d+/i;
+const RE_MD_HEADING = /^(#{1,6})\s*(.+)$/;
+const RE_BOLD_LINE = /^\*\*(.+)\*\*$/;
+const RE_END_PUNCT = /[。！？!?…；;，,：:]$/;
+const RE_META = /^(作者|编辑|文|图|来源|转载|日期|时间|公众号|微信|ID|原创)[：:]/;
+const RE_LIST_ITEM = /^[-*+\u2022\u2013\u2014]\s*/;
+
+// 文章主标题候选：首行短句（非编号、非列表、无句末标点、后面还有正文）
 function isLikelyTitle(line, lines, i) {
     const t = line.trim();
-    if (t.length < 2 || t.length > 30) return false;
-    if (/^[一二三四五六七八九十百千]+[、.．]/.test(t)) return false;
-    if (/^[（(][一二三四五六七八九十百千]+[）)]/.test(t)) return false;
-    if (/^\d+[、.．]/.test(t)) return false;
-    if (/^[-–—•]/.test(t)) return false;
-    if (/[。！？!?…；;，,：:]$/.test(t)) return false;
+    if (t.length < 2 || t.length > 40) return false;
+    if (RE_TITLE_NUM.test(t) || RE_SUB_NUM.test(t) || RE_ORDER_NUM.test(t) || RE_LIST.test(t)) return false;
+    if (RE_CHAPTER.test(t) || RE_PART.test(t) || RE_MD_HEADING.test(t) || RE_BOLD_LINE.test(t)) return false;
+    if (RE_META.test(t) || RE_END_PUNCT.test(t)) return false;
+    for (let k = i + 1; k < lines.length; k++) {
+        if (lines[k].trim()) return true;
+    }
+    return false;
+}
+
+// 独立短句 → 小标题：4~30字、非编号/列表、无句末标点，且前面有空行/紧接标题，或短行后紧跟长正文
+function isSubHeadingLine(line, lines, i, prevBlank, prevWasHeading) {
+    const t = line.trim();
+    if (t.length < 4 || t.length > 30) return false;
+    if (RE_TITLE_NUM.test(t) || RE_SUB_NUM.test(t) || RE_ORDER_NUM.test(t) || RE_LIST.test(t)) return false;
+    if (RE_CHAPTER.test(t) || RE_PART.test(t) || RE_MD_HEADING.test(t) || RE_BOLD_LINE.test(t)) return false;
+    if (RE_META.test(t) || RE_END_PUNCT.test(t)) return false;
+    let standalone = prevBlank || prevWasHeading;
+    if (!standalone) {
+        for (let k = i + 1; k < lines.length; k++) {
+            const n = lines[k].trim();
+            if (n) {
+                if (t.length <= 20 && n.length > 34) standalone = true;
+                break;
+            }
+        }
+    }
+    if (!standalone) return false;
     for (let k = i + 1; k < lines.length; k++) {
         if (lines[k].trim()) return true;
     }
@@ -64,6 +104,8 @@ function parseAndFormat(text, style) {
     let inList = false;
     let h2Counter = 0;
     let firstContentDone = false;
+    let prevBlank = true;
+    let prevWasHeading = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -74,29 +116,68 @@ function parseAndFormat(text, style) {
             if (inList) { html += '</ul>'; inList = false; }
             const spacingContent = style.spacingContent || '';
             html += '<div style="' + safeStyle(style.spacing) + '">' + spacingContent + '</div>';
+            prevBlank = true;
+            prevWasHeading = false;
             continue;
         }
 
-        // 文章主标题：首行短句（非编号、无句末标点、后面还有正文）
-        if (!firstContentDone && isLikelyTitle(trimmedLine, lines, i)) {
+        let wasHeading = false;
+        let rendered = false;
+
+        // Markdown 标题：# / ## / ### → 主标题 / 一级 / 二级
+        let m = trimmedLine.match(RE_MD_HEADING);
+        if (!rendered && m && m[2]) {
+            if (inList) { html += '</ul>'; inList = false; }
+            const lv = m[1].length;
+            const tag = lv <= 1 ? 'h1' : (lv === 2 ? 'h2' : 'h3');
+            const skey = lv <= 1 ? (style.title || style.h1) : (lv === 2 ? style.h1 : style.h2);
+            html += '<' + tag + ' style="' + safeStyle(skey) + '">' + escapeHtml(m[2].trim()) + '</' + tag + '>';
+            rendered = true;
+            wasHeading = true;
+        }
+
+        // **加粗** 独立行 → 一级标题
+        if (!rendered) {
+            m = trimmedLine.match(RE_BOLD_LINE);
+            if (m) {
+                if (inList) { html += '</ul>'; inList = false; }
+                html += '<h2 style="' + safeStyle(style.h1) + '">' + escapeHtml(m[1].trim()) + '</h2>';
+                rendered = true;
+                wasHeading = true;
+            }
+        }
+
+        // 第X章 / Part N → 一级标题
+        if (!rendered && (RE_CHAPTER.test(trimmedLine) || RE_PART.test(trimmedLine))) {
+            if (inList) { html += '</ul>'; inList = false; }
+            const h1Content = (style.h1Prefix || '') + escapeHtml(trimmedLine) + (style.h1Suffix || '');
+            html += '<h2 style="' + safeStyle(style.h1) + '">' + h1Content + '</h2>';
+            rendered = true;
+            wasHeading = true;
+        }
+
+        // 文章主标题：首行短句
+        if (!rendered && !firstContentDone && isLikelyTitle(trimmedLine, lines, i)) {
             firstContentDone = true;
             if (inList) { html += '</ul>'; inList = false; }
             const titleStyle = style.title || style.h1 || '';
             html += '<h1 style="' + safeStyle(titleStyle) + '">' + escapeHtml(trimmedLine) + '</h1>';
-            continue;
+            rendered = true;
+            wasHeading = true;
         }
         firstContentDone = true;
 
         // 一级标题：一、二、三…
-        if (/^[一二三四五六七八九十百千]+[、.．]/.test(trimmedLine)) {
+        if (!rendered && RE_TITLE_NUM.test(trimmedLine)) {
             if (inList) { html += '</ul>'; inList = false; }
             const h1Content = (style.h1Prefix || '') + escapeHtml(trimmedLine) + (style.h1Suffix || '');
             html += '<h2 style="' + safeStyle(style.h1) + '">' + h1Content + '</h2>';
-            continue;
+            rendered = true;
+            wasHeading = true;
         }
 
         // 二级标题：（一）（二）…
-        if (/^[（(][一二三四五六七八九十百千]+[）)]/.test(trimmedLine)) {
+        if (!rendered && RE_SUB_NUM.test(trimmedLine)) {
             if (inList) { html += '</ul>'; inList = false; }
             h2Counter++;
             const h2Content = (style.h2Prefix || '') + escapeHtml(trimmedLine) + (style.h2Suffix || '');
@@ -110,35 +191,51 @@ function parseAndFormat(text, style) {
             } else {
                 html += '<h3 style="' + safeStyle(style.h2) + '">' + h2Content + '</h3>';
             }
-            continue;
+            rendered = true;
+            wasHeading = true;
         }
 
         // 三级标题：1、2、3…
-        if (/^\d+[、.．]/.test(trimmedLine)) {
+        if (!rendered && RE_ORDER_NUM.test(trimmedLine)) {
             if (inList) { html += '</ul>'; inList = false; }
             const h3Content = (style.h3Prefix || '') + escapeHtml(trimmedLine) + (style.h3Suffix || '');
             html += '<h4 style="' + safeStyle(style.h3) + '">' + h3Content + '</h4>';
-            continue;
+            rendered = true;
+            wasHeading = true;
         }
 
         // 列表项：- 开头
-        if (/^[-–—]/.test(trimmedLine)) {
+        if (!rendered && RE_LIST.test(trimmedLine)) {
             if (!inList) {
                 html += '<ul style="' + safeStyle(style.listContainer) + '">';
                 inList = true;
             }
-            const listContent = trimmedLine.replace(/^[-–—]\s*/, '');
+            const listContent = trimmedLine.replace(RE_LIST_ITEM, '');
             const markerContent = style.listMarkerContent || '\u2022';
             html += '<li style="' + safeStyle(style.listItem) + '">' +
                 '<span style="' + safeStyle(style.listMarker) + '">' + markerContent + '</span>' +
                 '<span>' + escapeHtml(listContent) + '</span>' +
                 '</li>';
-            continue;
+            rendered = true;
+        }
+
+        // 独立短句 → 自动识别为小标题
+        if (!rendered && isSubHeadingLine(trimmedLine, lines, i, prevBlank, prevWasHeading)) {
+            if (inList) { html += '</ul>'; inList = false; }
+            const h1Content = (style.h1Prefix || '') + escapeHtml(trimmedLine) + (style.h1Suffix || '');
+            html += '<h2 style="' + safeStyle(style.h1) + '">' + h1Content + '</h2>';
+            rendered = true;
+            wasHeading = true;
         }
 
         // 普通段落
-        if (inList) { html += '</ul>'; inList = false; }
-        html += '<p style="' + safeStyle(style.paragraph) + '">' + escapeHtml(trimmedLine) + '</p>';
+        if (!rendered) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += '<p style="' + safeStyle(style.paragraph) + '">' + escapeHtml(trimmedLine) + '</p>';
+        }
+
+        prevBlank = false;
+        prevWasHeading = wasHeading;
     }
 
     if (inList) { html += '</ul>'; }
