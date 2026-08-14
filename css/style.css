@@ -466,3 +466,24 @@ svg { display: block; }
 .chip-text.on { color: var(--primary); border-color: var(--primary); }
 .reset-type { align-self: flex-start; }
 
+
+/* 页脚 + 二维码 */
+.footer { position: relative; }
+.foot-right { display: flex; align-items: center; gap: 12px; }
+.qr-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; background: var(--primary-soft); color: var(--primary);
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  padding: 6px 12px; border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.qr-btn:hover { background: var(--primary); color: #fff; }
+.qr-pop {
+  position: absolute; right: 20px; bottom: calc(100% + 10px); z-index: 50;
+  background: var(--panel); border: 1px solid var(--hairline-2);
+  border-radius: 12px; box-shadow: var(--shadow-md);
+  padding: 14px 16px; text-align: center;
+  animation: fadeUp 0.2s var(--ease) both;
+}
+.qr-pop img { display: block; margin: 0 auto 8px; border-radius: 6px; }
+.qr-url { font-size: 11px; color: var(--muted); margin-bottom: 8px; font-variant-numeric: tabular-nums; }

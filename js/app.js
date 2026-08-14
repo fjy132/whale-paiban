@@ -190,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initZoom();
   buildTemplateGallery();
   initEvents();
+  initQr();
   setTimeout(formatText, 60);
 });
 
@@ -410,6 +411,21 @@ function switchTemplate(templateId, categoryName) {
   renderTemplateGrid(currentCategory);
   formatText();
 }
+
+
+/* ---------- 手机扫码访问 ---------- */
+function initQr() {
+  const btn = document.getElementById('qrBtn');
+  const pop = document.getElementById('qrPop');
+  btn.addEventListener('click', e => { e.stopPropagation(); pop.hidden = !pop.hidden; });
+  document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) pop.hidden = true; });
+  document.getElementById('qrCopyBtn').addEventListener('click', () => {
+    const url = 'https://fjy132.github.io/whale-paiban/';
+    navigator.clipboard.writeText(url).then(() => showToast('公网地址已复制，可在任意设备打开', '复制成功'))
+      .catch(() => { fallbackCopy(url); showToast('公网地址已复制，可在任意设备打开', '复制成功'); });
+  });
+}
+
 
 /* ---------- 预览 ---------- */
 function formatText() {
