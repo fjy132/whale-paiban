@@ -1,0 +1,259 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鲸鱼排版小工具 · 公众号 / 小红书排版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%237C3AED%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2216%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22%23fff%22 text-anchor=%22middle%22%3EF%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ===== 顶栏 ===== -->
+  <header class="topbar" id="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">鲸</span>
+      <span class="brand-name">鲸鱼排版小工具</span>
+    </div>
+
+    <nav class="seg" id="platformSwitch" aria-label="切换平台">
+      <span class="seg-bg" aria-hidden="true"></span>
+      <button type="button" class="seg-btn active" data-platform="wechat">公众号</button>
+      <button type="button" class="seg-btn" data-platform="xhs">小红书</button>
+    </nav>
+
+    <div class="top-actions">
+      <button type="button" class="icon-btn" id="themeToggle" title="切换深色 / 浅色" aria-label="切换深色 / 浅色">
+        <svg class="i-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        <svg class="i-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      </button>
+      <button type="button" class="btn ghost" id="clearBtn">清空</button>
+      <button type="button" class="btn primary" id="copyBtn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        <span id="copyBtnText">复制到公众号</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== 三栏编辑器 ===== -->
+  <div class="editor">
+
+    <!-- 左：模板库 -->
+    <aside class="left-panel">
+      <div class="panel-head">
+        <span class="panel-title">模板</span>
+        <span class="hint" id="templateCount"></span>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="tplSearch" type="text" placeholder="搜索模板" autocomplete="off">
+      </div>
+      <div class="pills" id="categoryPills"></div>
+      <div class="tpl-list" id="templateGrid"></div>
+    </aside>
+
+    <!-- 中：画布 -->
+    <section class="canvas" id="canvas">
+      <div class="canvas-dots">
+        <div class="canvas-stage" id="canvasStage">
+          <div class="page" id="page">
+            <div id="previewArea" class="preview-area">
+              <p class="placeholder">在右侧输入内容，这里实时预览排版效果</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="zoom-bar">
+        <button type="button" class="zb-btn" id="zoomOut" title="缩小" aria-label="缩小">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"/></svg>
+        </button>
+        <span class="zoom-label" id="zoomLabel">100%</span>
+        <button type="button" class="zb-btn" id="zoomIn" title="放大" aria-label="放大">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button type="button" class="zb-btn" id="zoomFit" title="适应窗口" aria-label="适应窗口">适应</button>
+      </div>
+    </section>
+
+    <!-- 右：编辑 / 属性 -->
+    <aside class="right-panel">
+      <div class="panel-head">
+        <span class="panel-title">编辑</span>
+        <span class="platform-tag" id="platformTag">公众号</span>
+      </div>
+
+      <div class="acc" id="aiAcc">
+        <button type="button" class="acc-head" id="aiAccHead" aria-expanded="false">
+          <span class="acc-title">AI 结构化助手</span>
+          <span class="acc-chev">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </button>
+        <div class="acc-body" id="aiAccBody">
+          <div class="acc-inner">
+            <ol class="steps">
+              <li><span class="step-num">1</span>复制提示词发给豆包 / DeepSeek</li>
+              <li><span class="step-num">2</span>把原始文章也发给 AI</li>
+              <li><span class="step-num">3</span>将整理好的文字粘贴到下方</li>
+            </ol>
+            <div class="prompt-box">
+              <div class="prompt-text" id="aiPromptText">请将我提供的内容，按照以下结构重新整理排版：
+1.【一级标题】必须以"一、二、三……"开头，编号后跟简短标题（不超过20字），正文换行另起。
+2.【二级标题】必须以"（一）（二）（三）……"开头，规则同一级标题。
+3.【三级标题】必须以"1、2、3……"开头。
+4.【列表项】以"-"开头，适合罗列短句。
+5.【段落】不同内容块之间留一个空行，以便自动分段。
+6.【处理规则】如果原文是大段文字，请提炼出简短"小标题"放在编号后，将原文作为正文放在下一行；严格保留原文核心信息，不随意删减，可微调结构以适应上述层级。
+7.【绝对禁忌】严禁使用 Markdown 加粗符号（如 **粗体**）；严禁输出"好的""如下所示"等客套话；严禁输出多个版本，只给一个最终结果。</div>
+              <button type="button" class="btn ghost sm" id="copyPromptBtn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                复制提示词
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="acc open" id="typeAcc">
+        <button type="button" class="acc-head" id="typeAccHead" aria-expanded="true">
+          <span class="acc-title">文字样式</span>
+          <span class="acc-chev">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </button>
+        <div class="acc-body" id="typeAccBody">
+          <div class="acc-inner type-body">
+            <div class="field">
+              <label>字体</label>
+              <select id="typeFont">
+                <option value="default">跟随模板</option>
+                <option value="sans">无衬线</option>
+                <option value="yahei">微软雅黑</option>
+                <option value="serif">衬线</option>
+                <option value="kai">楷体</option>
+                <option value="fangsong">仿宋</option>
+                <option value="mono">等宽</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>正文字号</label>
+              <div class="stepper"><button type="button" data-key="baseSize" data-d="-1">−</button><span id="v-baseSize">15px</span><button type="button" data-key="baseSize" data-d="1">+</button></div>
+            </div>
+            <div class="field">
+              <label>标题字号</label>
+              <div class="stepper"><button type="button" data-key="h1Size" data-d="-1">−</button><span id="v-h1Size">21px</span><button type="button" data-key="h1Size" data-d="1">+</button></div>
+            </div>
+            <div class="field">
+              <label>行距</label>
+              <div class="stepper"><button type="button" data-key="lineHeight" data-d="-1">−</button><span id="v-lineHeight">1.8</span><button type="button" data-key="lineHeight" data-d="1">+</button></div>
+            </div>
+            <div class="field">
+              <label>字间距</label>
+              <div class="stepper"><button type="button" data-key="letterSpacing" data-d="-1">−</button><span id="v-letterSpacing">0.3px</span><button type="button" data-key="letterSpacing" data-d="1">+</button></div>
+            </div>
+            <div class="field">
+              <label>段间距</label>
+              <div class="stepper"><button type="button" data-key="paraMargin" data-d="-1">−</button><span id="v-paraMargin">12px</span><button type="button" data-key="paraMargin" data-d="1">+</button></div>
+            </div>
+            <div class="field">
+              <label>对齐</label>
+              <div class="seg2">
+                <button type="button" class="on" data-align="justify">两端对齐</button>
+                <button type="button" data-align="left">左对齐</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>正文颜色</label>
+              <div class="chips">
+                <button type="button" class="chip chip-text on" data-color="">跟随</button>
+                <button type="button" class="chip" data-color="#3F3F46" style="--c:#3F3F46" title="深灰"></button>
+                <button type="button" class="chip" data-color="#18181B" style="--c:#18181B" title="墨黑"></button>
+                <button type="button" class="chip" data-color="#2563EB" style="--c:#2563EB" title="蓝"></button>
+                <button type="button" class="chip" data-color="#16A34A" style="--c:#16A34A" title="绿"></button>
+                <button type="button" class="chip" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
+              </div>
+            </div>
+            <button type="button" class="btn ghost sm reset-type" id="typeReset">重置文字样式</button>
+          </div>
+        </div>
+      </div>
+      <div class="risk-banner" id="riskBanner" hidden></div>
+
+      <textarea id="inputText" class="input-area" spellcheck="false" placeholder="在这里粘贴你的文章内容…">一、欢迎使用鲸鱼排版小工具
+这是一款把纯文本整理成精美排版的工具，支持公众号与小红书双平台。
+
+（一）怎么用
+1、粘贴或输入你的文章
+2、选择喜欢的样式模板
+3、一键复制到平台后台
+
+（二）格式提示
+- 一级标题：使用"一、二、三……"
+- 二级标题：使用"（一）（二）……"
+- 三级标题：使用"1、2、3……"
+- 列表项：使用"-"开头
+- 段落：空行自动分段
+
+二、开始排版
+清空这段示例文字，粘贴你的内容，画布会实时预览效果。</textarea>
+
+      <div id="sourceArea" class="source-area" hidden>
+        <textarea readonly id="sourceText" spellcheck="false"></textarea>
+      </div>
+
+      <div class="right-foot">
+        <span class="word-count" id="wordCount">0 字</span>
+        <div class="foot-actions">
+          <button type="button" class="btn ghost sm" id="sourceToggle">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>
+            HTML
+          </button>
+          <button type="button" class="btn ghost sm" id="exportBtn" hidden>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            导出图片
+          </button>
+          <button type="button" class="btn primary sm" id="copyFootBtn">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span id="copyFootText">复制到公众号</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <span>鲸鱼排版小工具 · 内容仅在本地处理，不会上传</span>
+    <span class="foot-keys">Ctrl / ⌘ + Enter 一键复制 · 画布支持缩放</span>
+  </footer>
+</div>
+
+<div id="hoverPreview" class="hover-preview" hidden>
+  <div class="hp-head">
+    <span class="hp-name" id="hpName"></span>
+    <span class="hp-cat" id="hpCategory"></span>
+    <span class="hp-hint">点击应用</span>
+  </div>
+  <div class="hp-body" id="hpBody"></div>
+</div>
+
+<div class="toast-overlay" id="toastOverlay" hidden></div>
+<div class="toast" id="toast" role="status">
+  <div class="toast-icon" id="toastIcon">
+    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12.5l5 5L20 7"/></svg>
+  </div>
+  <div class="toast-title" id="toastTitle">复制成功</div>
+  <div class="toast-message" id="toastMsg"></div>
+</div>
+
+<script src="js/formatter.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
+
+
+
+
+
+
