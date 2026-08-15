@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鲸鱼排版小工具 · 公众号 / 小红书排版</title>
+<title>鲸鱼排版小工具 · 公众号排版</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%237C3AED%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2216%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22%23fff%22 text-anchor=%22middle%22%3EF%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -16,12 +16,6 @@
       <span class="brand-mark" aria-hidden="true">鲸</span>
       <span class="brand-name">鲸鱼排版小工具</span>
     </div>
-
-    <nav class="seg" id="platformSwitch" aria-label="切换平台">
-      <span class="seg-bg" aria-hidden="true"></span>
-      <button type="button" class="seg-btn active" data-platform="wechat">公众号</button>
-      <button type="button" class="seg-btn" data-platform="xhs">小红书</button>
-    </nav>
 
     <div class="top-actions">
       <button type="button" class="icon-btn" id="themeToggle" title="切换深色 / 浅色" aria-label="切换深色 / 浅色">
@@ -183,24 +177,28 @@
       <div class="risk-banner" id="riskBanner" hidden></div>
 
       <textarea id="inputText" class="input-area" spellcheck="false" placeholder="在这里粘贴你的文章内容…">鲸鱼排版小工具使用指南
-这是一款把纯文本整理成精美排版的工具，支持公众号与小红书双平台，无需设计基础，粘贴即可出稿。
+这是一款把纯文本整理成精美排版的工具，专为公众号排版设计，无需设计基础，粘贴即可出稿。
 
 自动识别标题
 首行短句会自动变成"主标题"，独立的短句会自动变成"小标题"，不用手动标记。
 
+> 引用内容会自动排版成引用样式
+
 一、快速上手
 1、粘贴或输入你的文章
 2、选择喜欢的样式模板
-3、一键复制到平台后台
+3、一键复制到公众号后台
 
 二、格式提示
 - 一级标题：使用"一、二、三……"
 - 二级标题：使用"（一）（二）……"
 - 三级标题：使用"1、2、3……"
 - 列表项：使用"-"开头
+- 引用：使用">"开头
+- 分隔线：单独一行输入"---"
 - 段落：空行自动分段；没有编号的文章直接按段落排版
-- 兼容：# 井号标题、**加粗**、第X章
 
+---
 清空这段示例文字，粘贴你的内容，画布会实时预览效果。</textarea>
 
       <div id="sourceArea" class="source-area" hidden>
@@ -213,10 +211,6 @@
           <button type="button" class="btn ghost sm" id="sourceToggle">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>
             HTML
-          </button>
-          <button type="button" class="btn ghost sm" id="exportBtn" hidden>
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            导出图片
           </button>
           <button type="button" class="btn primary sm" id="copyFootBtn">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>

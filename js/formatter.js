@@ -1,4 +1,4 @@
-/**
+﻿/**
  * formatter.js — 纯函数：解析文本并生成公众号可用的内联样式 HTML
  * 不依赖 DOM，可在 Node 中直接测试。
  */
@@ -29,7 +29,9 @@ function getDefaultStyle() {
         listContainer: 'margin: 10px 0; padding: 12px; background: #f8f9fa; border-radius: 6px;',
         listItem: 'font-size: 15px; color: #333333; line-height: 1.8; margin: 6px 0; display: flex; align-items: flex-start;',
         listMarker: 'color: #3498db; margin-right: 8px; font-size: 14px; flex-shrink: 0;',
-        spacing: 'height: 10px;'
+        spacing: 'height: 10px;',
+        quote: 'margin: 16px 0; padding: 12px 16px; border-left: 4px solid #9ca3af; background: #f3f4f6; color: #374151; line-height: 1.9; font-size: 14.5px;',
+        divider: 'margin: 20px 0; border-top: 1px solid #d1d5db;'
     };
 }
 
@@ -44,6 +46,8 @@ function getDefaultStyle() {
  *   （一）（二）       → 二级标题 (h3)，可带序号水印
  *   1、2、3…          → 三级标题 (h4)
  *   - 开头            → 列表项 (ul/li)
+ *   > 开头            → 引用块 (blockquote)
+ *   --- / *** 单独行   → 分隔线
  *   独立短句(前后有空行等) → 自动识别为小标题 (h2)
  *   空行              → 间距分隔
  *   其余              → 普通段落 (p)
@@ -60,6 +64,8 @@ const RE_BOLD_LINE = /^\*\*(.+)\*\*$/;
 const RE_END_PUNCT = /[。！？!?…；;，,：:]$/;
 const RE_META = /^(作者|编辑|文|图|来源|转载|日期|时间|公众号|微信|ID|原创)[：:]/;
 const RE_LIST_ITEM = /^[-*+\u2022\u2013\u2014]\s*/;
+const RE_QUOTE = /^>\s*/;
+const RE_DIVIDER = /^[-=_*]{3,}$/;
 
 // 文章主标题候选：首行短句（非编号、非列表、无句末标点、后面还有正文）
 function isLikelyTitle(line, lines, i) {
@@ -103,6 +109,7 @@ function parseAndFormat(text, style) {
     let html = '<div style="' + safeStyle(style.container) + '">';
     let inList = false;
     let h2Counter = 0;
+    let h1Counter = 0;
     let firstContentDone = false;
     let prevBlank = true;
     let prevWasHeading = false;
@@ -123,6 +130,22 @@ function parseAndFormat(text, style) {
 
         let wasHeading = false;
         let rendered = false;
+
+        // 分隔线：单独一行 --- / *** / ___
+        if (!rendered && RE_DIVIDER.test(trimmedLine)) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += '<div style="' + safeStyle(style.divider) + '"></div>';
+            rendered = true;
+            wasHeading = false;
+        }
+
+        // 引用：> 开头
+        if (!rendered && RE_QUOTE.test(trimmedLine)) {
+            if (inList) { html += '</ul>'; inList = false; }
+            html += '<blockquote style="' + safeStyle(style.quote) + '">' + escapeHtml(trimmedLine.replace(RE_QUOTE, '')) + '</blockquote>';
+            rendered = true;
+            wasHeading = false;
+        }
 
         // Markdown 标题：# / ## / ### → 主标题 / 一级 / 二级
         let m = trimmedLine.match(RE_MD_HEADING);
@@ -170,8 +193,17 @@ function parseAndFormat(text, style) {
         // 一级标题：一、二、三…
         if (!rendered && RE_TITLE_NUM.test(trimmedLine)) {
             if (inList) { html += '</ul>'; inList = false; }
+            h1Counter++;
             const h1Content = (style.h1Prefix || '') + escapeHtml(trimmedLine) + (style.h1Suffix || '');
-            html += '<h2 style="' + safeStyle(style.h1) + '">' + h1Content + '</h2>';
+            if (style.h1NumberWatermark && style.h1NumberStyle) {
+                const paddedNumber = String(h1Counter).padStart(2, '0');
+                html += '<h2 style="' + safeStyle(style.h1) + '">' +
+                    '<span style="' + safeStyle(style.h1NumberStyle) + '">' + paddedNumber + '</span>' +
+                    '<span style="position: relative; z-index: 1;">' + h1Content + '</span>' +
+                    '</h2>';
+            } else {
+                html += '<h2 style="' + safeStyle(style.h1) + '">' + h1Content + '</h2>';
+            }
             rendered = true;
             wasHeading = true;
         }

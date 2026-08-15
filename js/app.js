@@ -1,6 +1,6 @@
 ﻿/**
  * app.js — 鲸鱼排版小工具 交互层（Canva 式三栏编辑器）
- * 左:模板库(搜索/分类/缩略图) · 中:画布(缩放/平台画框) · 右:编辑(文本/导出/复制)
+ * 左:模板库(搜索/分类/缩略图) · 中:画布(缩放) · 右:编辑(文本/复制)
  */
 
 let currentPlatform = 'wechat';
@@ -38,19 +38,10 @@ const PLATFORM_CONFIG = {
     '自然清新': 'nature-fresh'
   }, ['simple-professional', 'visual-balance', 'rich-decoration', 'creative-bold',
       'festival-atmosphere', 'cute-lifestyle', 'business-tech', 'literary-retro', 'nature-fresh']),
-  xhs: makeCategoryResolver({
-    '温柔治愈': 'gentle-healing',
-    '清爽简约': 'clean-minimal',
-    '可爱少女': 'cute-girl',
-    '复古胶片': 'retro-film',
-    '个性潮流': 'trendy',
-    '知识干货': 'knowledge'
-  }, ['gentle-healing', 'clean-minimal', 'cute-girl', 'retro-film', 'trendy', 'knowledge'])
 };
 PLATFORM_CONFIG.wechat.label = '公众号';
-PLATFORM_CONFIG.xhs.label = '小红书';
 
-const MINI_SAMPLE = '鲸鱼排版小工具\n一、标题样式示例\n（一）小标题样式\n这是用于模板预览的正文文字，用来展示段落与层级效果。\n- 列表项目示例';
+const MINI_SAMPLE = '鲸鱼排版小工具\n一、标题样式示例\n（一）小标题样式\n这是用于模板预览的正文文字，用来展示段落与层级效果。\n- 列表项目示例\n> 引用样式示例';
 
 const RISK_WORDS = ['最', '第一', '顶级', '国家级', '绝对', '唯一', '百分之百', '百分百', '全网最低', '史上最', '世界领先', '全球第一', '最好', '最佳', '极致', '无敌', '疗效', '根治', '治愈', '减肥', '美白', '祛痘', '丰胸', '壮阳', '抗癌', '防癌', '降血糖', '降血压', '治疗', '包治', '药到病除', '无效退款', '免费领取', '点击领取', '加微信', '微信号', '二维码', '转账', '收款', '返现', '刷单', '代购', '正品保证', '官方认证', '央视', '人民日报', '国家免检', '纯天然', '无副作用', '快速见效', '立竿见影', '秒杀', '特价'];
 
@@ -186,7 +177,6 @@ function getTemplateStyle(templateId) {
 /* ---------- 启动 ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
-  initPlatformSwitch();
   initAccordion();
   initTypePanel();
   initZoom();
@@ -205,33 +195,6 @@ function initTheme() {
     document.documentElement.dataset.theme = cur;
     localStorage.setItem('formatlab-theme', cur);
   });
-}
-
-/* ---------- 平台切换 ---------- */
-function initPlatformSwitch() {
-  document.querySelectorAll('.seg-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchPlatform(btn.dataset.platform));
-  });
-}
-
-function switchPlatform(platform) {
-  if (currentPlatform === platform) return;
-  currentPlatform = platform;
-  const idx = Array.from(document.querySelectorAll('.seg-btn')).findIndex(b => b.dataset.platform === platform);
-  document.querySelector('.seg-bg').style.transform = 'translateX(' + (idx * 100) + '%)';
-  document.querySelectorAll('.seg-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
-
-  document.getElementById('platformTag').textContent = PLATFORM_CONFIG[platform].label;
-  document.getElementById('copyBtnText').textContent = '复制到' + PLATFORM_CONFIG[platform].label;
-  document.getElementById('copyFootText').textContent = '复制到' + PLATFORM_CONFIG[platform].label;
-  document.getElementById('exportBtn').hidden = platform !== 'xhs';
-  document.getElementById('page').classList.toggle('xhs', platform === 'xhs');
-
-  currentCategory = null;
-  currentTemplate = null;
-  buildTemplateGallery();
-  formatText();
-  checkRiskWords();
 }
 
 /* ---------- 折叠面板 ---------- */
@@ -452,7 +415,6 @@ function initEvents() {
   document.getElementById('copyBtn').addEventListener('click', copyToClipboard);
   document.getElementById('copyFootBtn').addEventListener('click', copyToClipboard);
   document.getElementById('copyPromptBtn').addEventListener('click', copyPrompt);
-  document.getElementById('exportBtn').addEventListener('click', exportXhsImages);
 
   document.getElementById('sourceToggle').addEventListener('click', () => {
     const src = document.getElementById('sourceArea');
@@ -491,7 +453,6 @@ function clearInput() {
 /* ---------- 违禁词提示 ---------- */
 function checkRiskWords() {
   const banner = document.getElementById('riskBanner');
-  if (currentPlatform !== 'xhs') { banner.hidden = true; return; }
   const text = document.getElementById('inputText').value;
   const found = RISK_WORDS.filter(w => text.includes(w));
   if (!found.length) { banner.hidden = true; return; }
@@ -579,165 +540,3 @@ async function copyToClipboard() {
   fallbackCopy(plain);
   done();
 }
-
-/* =========================================================
-   小红书多图导出（长文分页 → 3:4 PNG）
-   ========================================================= */
-const XHS_EXPORT = {
-  W: 750, H: 1000, M: 56,
-  BLOCK_STYLE: {
-    h1: { font: '800 32px "PingFang SC","Microsoft YaHei","Segoe UI Emoji",sans-serif', lh: 50, padB: 20, padT: 14 },
-    h2: { font: '700 28px "PingFang SC","Microsoft YaHei","Segoe UI Emoji",sans-serif', lh: 44, padB: 14, padT: 0 },
-    h3: { font: '700 25px "PingFang SC","Microsoft YaHei","Segoe UI Emoji",sans-serif', lh: 40, padB: 10, padT: 0 },
-    p:  { font: '400 22px "PingFang SC","Microsoft YaHei","Segoe UI Emoji",sans-serif', lh: 40, padB: 12, padT: 0 },
-    li: { font: '400 22px "PingFang SC","Microsoft YaHei","Segoe UI Emoji",sans-serif', lh: 40, padB: 10, padT: 0 },
-    sp: { font: '400 16px sans-serif', lh: 20, padB: 0, padT: 0 }
-  },
-  toBlocks(text) {
-    const blocks = [];
-    text.split('\n').forEach(raw => {
-      const line = raw.trim();
-      if (!line) { blocks.push({ type: 'sp' }); return; }
-      if (/^[一二三四五六七八九十百千]+[、.．]/.test(line)) blocks.push({ type: 'h1', text: line });
-      else if (/^[（(][一二三四五六七八九十百千]+[）)]/.test(line)) blocks.push({ type: 'h2', text: line });
-      else if (/^\d+[、.．]/.test(line)) blocks.push({ type: 'h3', text: line });
-      else if (/^[-–—]/.test(line)) blocks.push({ type: 'li', text: line.replace(/^[-–—]\s*/, '') });
-      else blocks.push({ type: 'p', text: line });
-    });
-    return blocks;
-  },
-  wrap(ctx, text, maxW) {
-    const lines = [];
-    let line = '';
-    for (const ch of text) {
-      if (ctx.measureText(line + ch).width > maxW && line) { lines.push(line); line = ch; }
-      else line += ch;
-    }
-    if (line) lines.push(line);
-    return lines;
-  },
-  measure(ctx, b, maxW) {
-    if (b.type === 'sp') return [];
-    ctx.font = XHS_EXPORT.BLOCK_STYLE[b.type].font;
-    return XHS_EXPORT.wrap(ctx, b.text, maxW);
-  },
-  blockHeight(b, lines) {
-    const s = XHS_EXPORT.BLOCK_STYLE[b.type] || XHS_EXPORT.BLOCK_STYLE.p;
-    return s.padT + Math.max(lines.length, 1) * s.lh + s.padB;
-  },
-  roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  },
-  draw(ctx, b, lines, o) {
-    const s = XHS_EXPORT.BLOCK_STYLE[b.type] || XHS_EXPORT.BLOCK_STYLE.p;
-    ctx.font = s.font;
-    const n = Math.max(lines.length, 1);
-    if (b.type === 'h1') {
-      const h = s.padT + n * s.lh + s.padB;
-      ctx.fillStyle = o.accent;
-      XHS_EXPORT.roundRect(ctx, o.M - 12, o.y, o.W - 2 * (o.M - 12), h, 22);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      let ty = o.y + s.padT + s.lh * 0.72;
-      lines.forEach(ln => { ctx.fillText(ln, o.W / 2, ty); ty += s.lh; });
-      ctx.textAlign = 'left';
-    } else if (b.type === 'h2') {
-      ctx.fillStyle = o.accent;
-      XHS_EXPORT.roundRect(ctx, o.M, o.y + 5, 8, n * s.lh - 12, 4);
-      ctx.fill();
-      ctx.fillStyle = o.accent;
-      let ty = o.y + s.lh * 0.72;
-      lines.forEach(ln => { ctx.fillText(ln, o.M + 24, ty); ty += s.lh; });
-    } else if (b.type === 'h3') {
-      ctx.fillStyle = o.accent;
-      XHS_EXPORT.roundRect(ctx, o.M, o.y + 7, 14, 5, 2);
-      ctx.fill();
-      ctx.fillStyle = o.accent;
-      let ty = o.y + s.lh * 0.72;
-      lines.forEach(ln => { ctx.fillText(ln, o.M + 28, ty); ty += s.lh; });
-    } else if (b.type === 'li') {
-      let ty = o.y + s.lh * 0.72;
-      lines.forEach(ln => {
-        ctx.fillStyle = o.accent;
-        ctx.fillText('\u25CF', o.M, ty);
-        ctx.fillStyle = o.tcol;
-        ctx.fillText(ln, o.M + 36, ty);
-        ty += s.lh;
-      });
-    } else {
-      ctx.fillStyle = o.tcol;
-      let ty = o.y + s.lh * 0.72;
-      lines.forEach(ln => { ctx.fillText(ln, o.M, ty); ty += s.lh; });
-    }
-  }
-};
-
-function extractAccent(style) {
-  const m = String(style.h1 || '').match(/#[0-9a-fA-F]{6}/g);
-  return m && m.length ? '#' + m[0].replace('#', '').toUpperCase() : '#7C3AED';
-}
-
-function exportXhsImages() {
-  const text = document.getElementById('inputText').value;
-  if (!text.trim()) { showToast('请先在右侧输入内容', '还没有内容'); return; }
-
-  const style = getTemplateStyle(currentTemplate);
-  const accent = extractAccent(style);
-  const E = XHS_EXPORT;
-  const maxW = E.W - 2 * E.M;
-  const blocks = E.toBlocks(text);
-  const isDark = /linear-gradient|#(0|1|2)[0-9a-fA-F]{5}/.test(style.container);
-  const tcol = isDark ? '#E2E8F0' : '#3F4550';
-  const bg = isDark ? '#0F1115' : '#FFFFFF';
-
-  const scratch = document.createElement('canvas');
-  const sctx = scratch.getContext('2d');
-  const pages = [];
-  let canvas, ctx, y;
-
-  const newPage = () => {
-    canvas = document.createElement('canvas');
-    canvas.width = E.W; canvas.height = E.H;
-    ctx = canvas.getContext('2d');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, E.W, E.H);
-    ctx.font = '600 19px "PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.fillStyle = typeof hexToRgba === 'function' ? hexToRgba(accent, 0.4) : 'rgba(124,58,237,0.4)';
-    ctx.textAlign = 'center';
-    ctx.fillText('鲸鱼排版 · 小红书排版', E.W / 2, 42);
-    ctx.textAlign = 'left';
-    y = E.M + 16;
-    pages.push(canvas);
-  };
-
-  newPage();
-  for (const b of blocks) {
-    const lines = E.measure(sctx, b, maxW);
-    const h = E.blockHeight(b, lines);
-    if (b.type !== 'sp' && y + h > E.H - E.M && pages.length < 30) newPage();
-    E.draw(ctx, b, lines, { M: E.M, W: E.W, accent, tcol });
-    y += h;
-  }
-
-  pages.forEach((c, i) => {
-    c.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '\u5C0F\u7EA2\u4E66\u7B14\u8BB0-' + (i + 1) + '.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-    }, 'image/png');
-  });
-  showToast('已导出 ' + pages.length + ' 张图片，请在下载列表查收', '导出完成');
-}
-
