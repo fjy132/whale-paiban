@@ -601,7 +601,7 @@ function initEvents() {
     const visible = !src.hidden;
     src.hidden = visible;
     prev.style.display = visible ? '' : 'none';
-    if (!visible) document.getElementById('sourceText').value = prev.innerHTML;
+    if (!visible) document.getElementById('sourceText').value = wechatCompatHtml(prev.innerHTML).html;
   });
 
   document.getElementById('tplSearch').addEventListener('input', () => renderTemplateGrid(currentCategory));
@@ -697,14 +697,77 @@ function fallbackCopy(text) {
   document.body.removeChild(ta);
 }
 
+/* ---------- 公众号兼容转换 ----------
+ * 微信编辑器不支持：CSS 渐变背景 / box-shadow / text-shadow /
+ * transform / backdrop-filter / position:absolute / z-index。
+ * 复制前自动：渐变转纯色、去掉不支持属性、绝对定位水印数字转行内小标签、
+ * 最外层 div 换成 section（公众号对 section 的背景保留最稳）。
+ */
+function wechatCompatHtml(html) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  let converted = false;
+
+  wrap.querySelectorAll('*').forEach(el => {
+    const orig = el.getAttribute('style');
+    if (!orig) return;
+    let st = orig;
+    let changed = false;
+
+    // 渐变背景 → 纯色（只从渐变声明内部取第一个 hex 作为主色）
+    if (/(linear-gradient|radial-gradient|conic-gradient)/.test(st)) {
+      const grad = st.match(/(?:linear-gradient|radial-gradient|conic-gradient)\([^)]*\)/);
+      const hex = grad ? grad[0].match(/#[0-9a-fA-F]{6}/) : null;
+      st = st.replace(/(?:background(?:-image)?\s*:\s*)[^;]+;?/gi, '');
+      st = 'background-color:' + (hex ? hex[0] : '#FFFFFF') + ';' + st;
+      changed = true;
+      converted = true;
+    }
+
+    // 绝对定位的水印数字 → 行内小标签（避免粘贴后错位/丢失）
+    if (/\bposition\s*:\s*absolute/.test(st)) {
+      st = 'display:inline-block;font-size:13px;font-weight:700;opacity:.55;margin-right:8px;vertical-align:middle;';
+      changed = true;
+    } else {
+      const cleaned = st
+        .replace(/box-shadow:[^;]+;?/g, '')
+        .replace(/text-shadow:[^;]+;?/g, '')
+        .replace(/backdrop-filter:[^;]+;?/g, '')
+        .replace(/-webkit-backdrop-filter:[^;]+;?/g, '')
+        .replace(/transform:[^;]+;?/g, '')
+        .replace(/\bposition\s*:\s*(?:relative|static)\s*;?/g, '')
+        .replace(/z-index:[^;]+;?/g, '')
+        .replace(/\s*;\s*;/g, ';')
+        .replace(/;\s*$/, '')
+        .trim();
+      if (cleaned !== orig) { st = cleaned; changed = true; }
+    }
+    if (changed) el.setAttribute('style', st);
+  });
+
+  // 最外层 div → section
+  const first = wrap.firstElementChild;
+  if (first && first.tagName === 'DIV') {
+    const sec = document.createElement('section');
+    const st = first.getAttribute('style');
+    if (st) sec.setAttribute('style', st);
+    while (first.firstChild) sec.appendChild(first.firstChild);
+    first.replaceWith(sec);
+  }
+  return { html: wrap.innerHTML, converted };
+}
+
 /* ---------- 复制到平台 ---------- */
 async function copyToClipboard() {
   const preview = document.getElementById('previewArea');
-  const html = preview.innerHTML;
-  if (html.includes('placeholder')) { showToast('请先在右侧输入内容', '还没有内容'); return; }
+  if (preview.innerHTML.includes('placeholder')) { showToast('请先在右侧输入内容', '还没有内容'); return; }
+  const compat = wechatCompatHtml(preview.innerHTML);
+  const html = compat.html;
   const plain = preview.innerText;
   const label = PLATFORM_CONFIG[currentPlatform].label;
-  const done = () => showToast('已复制排版内容，直接粘贴到' + label + '后台即可', '复制成功');
+  const done = () => showToast(
+    '已复制排版内容，直接粘贴到' + label + '后台即可' + (compat.converted ? '（渐变背景已自动转为纯色）' : ''),
+    '复制成功');
 
   if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
     try {
