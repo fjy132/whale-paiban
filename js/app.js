@@ -47,40 +47,158 @@ const RISK_WORDS = ['最', '第一', '顶级', '国家级', '绝对', '唯一', 
 
 
 /* ---------- 文字样式（字体 / 字号 / 间距） ---------- */
-const TYPE_DEFAULTS = { font: 'default', baseSize: 15, lineHeight: 1.8, letterSpacing: 0.3, h1Size: 21, paraMargin: 12, align: 'justify', textColor: '' };
+const TYPE_DEFAULTS = { font: 'default', fontCustom: '', baseSize: 15, lineHeight: 1.8, h1LineHeight: 1.5, letterSpacing: 0.3, h1Size: 21, paraMargin: 12, textIndent: 0, align: 'justify', textColor: '', h1Color: '' };
 let TYPE = Object.assign({}, TYPE_DEFAULTS);
 
 const FONT_MAP = {
   default: '',
   sans: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
   yahei: '"Microsoft YaHei", "PingFang SC", sans-serif',
+  hei: '"SimHei", "Microsoft YaHei", sans-serif',
+  song: '"SimSun", "Songti SC", serif',
   serif: 'Georgia, "Times New Roman", "Songti SC", "SimSun", serif',
   kai: '"KaiTi", "STKaiti", "Kaiti SC", serif',
   fangsong: '"FangSong", "STFangsong", serif',
+  pingfang: '"PingFang SC", "Microsoft YaHei", sans-serif',
+  sourcehan: '"Source Han Sans SC", "Source Han Sans CN", "Microsoft YaHei", sans-serif',
+  sourcehanserif: '"Source Han Serif SC", "Source Han Serif CN", "SimSun", serif',
   mono: '"SF Mono", Consolas, "Courier New", monospace'
 };
 
 // 在模板样式末尾追加覆盖声明（后声明者生效），实现实时排版微调
 function applyTypeOverrides(style) {
   const s = Object.assign({}, style);
-  const font = FONT_MAP[TYPE.font] || '';
+  let font = FONT_MAP[TYPE.font] || '';
+  if (TYPE.font === 'custom' && TYPE.fontCustom && TYPE.fontCustom.trim()) {
+    font = '"' + TYPE.fontCustom.trim() + '", ' + (FONT_MAP.sans || 'sans-serif');
+  }
   const o = {};
   o.container = (font ? 'font-family:' + font + ';' : '') + 'font-size:' + TYPE.baseSize + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
-  o.paragraph = 'font-size:' + TYPE.baseSize + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;margin:' + TYPE.paraMargin + 'px 0;text-align:' + TYPE.align + ';' + (TYPE.textColor ? 'color:' + TYPE.textColor + ';' : '');
-  o.h1 = 'font-size:' + TYPE.h1Size + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + (Math.round((TYPE.letterSpacing + 0.2) * 10) / 10) + 'px;';
-  o.h2 = 'font-size:' + Math.max(14, Math.round(TYPE.h1Size * 0.86)) + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
-  o.h3 = 'font-size:' + Math.max(13, Math.round(TYPE.h1Size * 0.76)) + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
+  o.paragraph = 'font-size:' + TYPE.baseSize + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;margin:' + TYPE.paraMargin + 'px 0;text-align:' + TYPE.align + ';' + (TYPE.textColor ? 'color:' + TYPE.textColor + ';' : '') + (TYPE.textIndent ? 'text-indent:' + TYPE.textIndent + 'em;' : '');
+  o.h1 = 'font-size:' + TYPE.h1Size + 'px;line-height:' + TYPE.h1LineHeight + ';letter-spacing:' + (Math.round((TYPE.letterSpacing + 0.2) * 10) / 10) + 'px;' + (TYPE.h1Color ? 'color:' + TYPE.h1Color + ';' : '');
+  o.h2 = 'font-size:' + Math.max(14, Math.round(TYPE.h1Size * 0.86)) + 'px;line-height:' + TYPE.h1LineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
+  o.h3 = 'font-size:' + Math.max(13, Math.round(TYPE.h1Size * 0.76)) + 'px;line-height:' + TYPE.h1LineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
   o.listItem = 'font-size:' + TYPE.baseSize + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + TYPE.letterSpacing + 'px;';
   o.listMarker = 'font-size:' + Math.max(10, Math.round(TYPE.baseSize * 0.9)) + 'px;';
   o.spacing = 'height:' + Math.max(6, Math.round(TYPE.baseSize * 0.75)) + 'px;'
   if (!s.title && s.h1) s.title = s.h1;
-  o.title = 'font-size:' + Math.min(34, Math.round(TYPE.h1Size * 1.25)) + 'px;line-height:' + TYPE.lineHeight + ';letter-spacing:' + (Math.round((TYPE.letterSpacing + 0.25) * 10) / 10) + 'px;';
+  o.title = 'font-size:' + Math.min(34, Math.round(TYPE.h1Size * 1.25)) + 'px;line-height:' + TYPE.h1LineHeight + ';letter-spacing:' + (Math.round((TYPE.letterSpacing + 0.25) * 10) / 10) + 'px;' + (TYPE.h1Color ? 'color:' + TYPE.h1Color + ';' : '');
   Object.keys(o).forEach(k => { s[k] = (s[k] || '') + o[k]; });
   return s;
 }
 
 function getCurrentStyle() {
   return applyTypeOverrides(getTemplateStyle(currentTemplate));
+}
+
+/* ---------- 选区文字格式 ---------- */
+const SEL_DEFAULTS = { s: 0, c: '', f: 'default', b: false, i: false, u: false, fc: '' };
+let SEL = Object.assign({}, SEL_DEFAULTS);
+
+function selMarker() {
+  const parts = [];
+  if (SEL.s) parts.push('s=' + SEL.s);
+  if (SEL.c) parts.push('c=' + SEL.c);
+  if (SEL.f === 'custom' && SEL.fc && SEL.fc.trim()) parts.push('fc=' + SEL.fc.trim());
+  else if (SEL.f && SEL.f !== 'default') parts.push('f=' + SEL.f);
+  if (SEL.b) parts.push('b=1');
+  if (SEL.i) parts.push('i=1');
+  if (SEL.u) parts.push('u=1');
+  return parts.length ? '\u27E6' + parts.join(';') + '\u27E7' : '';
+}
+
+function stripSelMarkers(str) {
+  return String(str).replace(/\u27E6[^\u27E7]*\u27E7/g, '').replace(/\u27E6\/\u27E7/g, '');
+}
+
+function applySelectionFormat() {
+  const ta = document.getElementById('inputText');
+  let s = ta.selectionStart, e = ta.selectionEnd;
+  if (s === e) { showToast('请先在左侧文章里选中要调整的文字', '未选中文字'); return; }
+  const full = ta.value;
+  // 如果选区整体在某个旧格式标记内部，先扩大到整个标记再重写，避免产生嵌套标记
+  const before = full.slice(0, s);
+  const lastOpen = before.lastIndexOf('\u27E6');
+  const lastCloseOpen = before.lastIndexOf('\u27E6/\u27E7');
+  if (lastOpen > lastCloseOpen) {
+    const nextClose = full.indexOf('\u27E6/\u27E7', e);
+    if (nextClose >= 0) { s = lastOpen; e = nextClose + 3; }
+  }
+  recordHistory();
+  const pre = full.slice(0, s);
+  const post = full.slice(e);
+  const marker = selMarker();
+  const selLines = full.slice(s, e).split('\n').map(ln => {
+    const clean = stripSelMarkers(ln);
+    if (!clean.trim()) return clean;
+    return marker + clean + (marker ? '\u27E6/\u27E7' : '');
+  });
+  const wrapped = selLines.join('\n');
+  ta.value = pre + wrapped + post;
+  ta.focus();
+  ta.setSelectionRange(s, s + wrapped.length);
+  refreshFromTextarea();
+}
+
+function clearSelectionFormat() {
+  const ta = document.getElementById('inputText');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  if (s === e) { showToast('请先选中要清除格式的文字', '未选中文字'); return; }
+  recordHistory();
+  const before = ta.value.slice(0, s);
+  const after = ta.value.slice(e);
+  const cleared = stripSelMarkers(ta.value.slice(s, e));
+  ta.value = before + cleared + after;
+  ta.focus();
+  ta.setSelectionRange(s, s + cleared.length);
+  refreshFromTextarea();
+}
+
+function parseSelProps(inner) {
+  const p = {};
+  String(inner).split(';').forEach(kv => { const i = kv.indexOf('='); if (i > 0) p[kv.slice(0, i).trim()] = kv.slice(i + 1).trim(); });
+  return { s: parseInt(p.s, 10) || 0, c: p.c || '', f: p.f || 'default', b: !!p.b, i: !!p.i, u: !!p.u, fc: p.fc || '' };
+}
+
+function readSelectionFormat() {
+  const ta = document.getElementById('inputText');
+  const s = ta.selectionStart;
+  const rest = ta.value.slice(s);
+  // 情况1：选区起点正好在标记开头（应用格式后重新选中的范围包含标记）
+  if (rest.indexOf('\u27E6') === 0) {
+    const inner = rest.slice(1).split('\u27E7')[0] || '';
+    SEL = Object.assign({}, SEL_DEFAULTS, parseSelProps(inner));
+    syncSelUI();
+    return;
+  }
+  // 情况2：选区起点在某个标记内部
+  const before = ta.value.slice(0, s);
+  const lastOpen = before.lastIndexOf('\u27E6');
+  const lastClose = before.lastIndexOf('\u27E6/\u27E7');
+  const nextClose = ta.value.indexOf('\u27E6/\u27E7', s);
+  if (lastOpen > lastClose && nextClose > s) {
+    const inner = before.slice(lastOpen + 1).split('\u27E7')[0] || '';
+    SEL = Object.assign({}, SEL_DEFAULTS, parseSelProps(inner));
+  } else {
+    SEL = Object.assign({}, SEL_DEFAULTS);
+  }
+  syncSelUI();
+}
+
+function syncSelUI() {
+  document.getElementById('v-selSize').textContent = SEL.s ? SEL.s + 'px' : '跟随';
+  document.getElementById('selFont').value = SEL.f === 'custom' ? 'custom' : (SEL.f || 'default');
+  const sfc = document.getElementById('selFontCustom');
+  if (sfc) sfc.value = SEL.fc || '';
+  const scc = document.getElementById('selColorCustom');
+  if (scc) scc.value = SEL.c || '#7C3AED';
+  document.querySelectorAll('.chip[data-sel="color"]').forEach(c => c.classList.toggle('on', (c.dataset.color || '') === SEL.c));
+  const sb = document.getElementById('selBold');
+  if (sb) sb.classList.toggle('on', SEL.b);
+  const ti = document.getElementById('tbItalic');
+  if (ti) ti.classList.toggle('on', SEL.i);
+  const tu = document.getElementById('tbUnderline');
+  if (tu) tu.classList.toggle('on', SEL.u);
 }
 
 /* ---------- 文字样式面板 ---------- */
@@ -93,20 +211,34 @@ function initTypePanel() {
 
   document.getElementById('typeFont').addEventListener('change', e => {
     TYPE.font = e.target.value;
+    if (TYPE.font === 'custom') {
+      const inp = document.getElementById('fontCustomInput');
+      if (inp) { inp.focus(); inp.select(); }
+    }
     onTypeChange();
   });
+  const fontCustomInput = document.getElementById('fontCustomInput');
+  if (fontCustomInput) {
+    fontCustomInput.addEventListener('input', () => {
+      TYPE.fontCustom = fontCustomInput.value;
+      if (TYPE.font === 'custom') onTypeChange();
+    });
+  }
 
   document.querySelectorAll('.stepper button').forEach(btn => {
     btn.addEventListener('click', () => {
+      if (btn.dataset.sel) return;
       const key = btn.dataset.key;
       const d = parseFloat(btn.dataset.d);
-      const step = (key === 'lineHeight' || key === 'letterSpacing') ? 0.1 : 1;
+      const step = (key === 'lineHeight' || key === 'letterSpacing' || key === 'h1LineHeight') ? 0.1 : (key === 'textIndent' ? 0.5 : 1);
       let v = Math.round((TYPE[key] + d * step) * 10) / 10;
       if (key === 'lineHeight') v = Math.min(2.6, Math.max(1.3, v));
+      if (key === 'h1LineHeight') v = Math.min(2.6, Math.max(1.2, v));
       if (key === 'letterSpacing') v = Math.min(2, Math.max(0, v));
       if (key === 'baseSize') v = Math.min(20, Math.max(12, Math.round(v)));
       if (key === 'h1Size') v = Math.min(30, Math.max(16, Math.round(v)));
       if (key === 'paraMargin') v = Math.min(30, Math.max(4, Math.round(v)));
+      if (key === 'textIndent') v = Math.min(4, Math.max(0, v));
       TYPE[key] = v;
       onTypeChange();
     });
@@ -121,7 +253,9 @@ function initTypePanel() {
 
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      TYPE.textColor = chip.dataset.color || '';
+      if (chip.dataset.sel) return;
+      if (chip.dataset.target === 'title') TYPE.h1Color = chip.dataset.color || '';
+      else TYPE.textColor = chip.dataset.color || '';
       onTypeChange();
     });
   });
@@ -130,6 +264,65 @@ function initTypePanel() {
     TYPE = Object.assign({}, TYPE_DEFAULTS);
     onTypeChange();
   });
+
+  // 选区文字控件
+  document.querySelectorAll('.stepper button[data-sel="size"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = parseFloat(btn.dataset.d);
+      SEL.s = Math.min(30, Math.max(12, (SEL.s || 15) + d * 1));
+      syncSelUI();
+      applySelectionFormat();
+    });
+  });
+  document.getElementById('selFont').addEventListener('change', e => {
+    SEL.f = e.target.value;
+    if (SEL.f === 'custom') {
+      const inp = document.getElementById('selFontCustom');
+      if (inp) inp.focus();
+    }
+    syncSelUI();
+    applySelectionFormat();
+  });
+  const selFontCustom = document.getElementById('selFontCustom');
+  if (selFontCustom) {
+    selFontCustom.addEventListener('input', () => {
+      SEL.fc = selFontCustom.value;
+      if (SEL.f === 'custom' && document.getElementById('inputText').selectionStart !== document.getElementById('inputText').selectionEnd) applySelectionFormat();
+    });
+  }
+  const selColorCustom = document.getElementById('selColorCustom');
+  if (selColorCustom) {
+    selColorCustom.addEventListener('input', () => {
+      SEL.c = selColorCustom.value;
+      syncSelUI();
+      if (document.getElementById('inputText').selectionStart !== document.getElementById('inputText').selectionEnd) applySelectionFormat();
+    });
+  }
+  document.querySelectorAll('.chip[data-sel="color"]').forEach(c => {
+    c.addEventListener('click', () => {
+      SEL.c = c.dataset.color || '';
+      syncSelUI();
+      applySelectionFormat();
+    });
+  });
+  document.getElementById('selBold').addEventListener('click', () => {
+    SEL.b = !SEL.b;
+    syncSelUI();
+    applySelectionFormat();
+  });
+  const tbItalic = document.getElementById('tbItalic');
+  if (tbItalic) tbItalic.addEventListener('click', () => {
+    SEL.i = !SEL.i;
+    syncSelUI();
+    applySelectionFormat();
+  });
+  const tbUnderline = document.getElementById('tbUnderline');
+  if (tbUnderline) tbUnderline.addEventListener('click', () => {
+    SEL.u = !SEL.u;
+    syncSelUI();
+    applySelectionFormat();
+  });
+  document.getElementById('selClear').addEventListener('click', clearSelectionFormat);
 
   syncTypeUI();
 }
@@ -142,14 +335,160 @@ function onTypeChange() {
 function syncTypeUI() {
   document.getElementById('v-baseSize').textContent = TYPE.baseSize + 'px';
   document.getElementById('v-h1Size').textContent = TYPE.h1Size + 'px';
+  document.getElementById('v-h1LineHeight').textContent = TYPE.h1LineHeight.toFixed(1);
   document.getElementById('v-lineHeight').textContent = TYPE.lineHeight.toFixed(1);
   document.getElementById('v-letterSpacing').textContent = TYPE.letterSpacing.toFixed(1) + 'px';
   document.getElementById('v-paraMargin').textContent = TYPE.paraMargin + 'px';
+  document.getElementById('v-textIndent').textContent = TYPE.textIndent ? TYPE.textIndent + 'em' : '0';
   document.getElementById('typeFont').value = TYPE.font;
+  const fci = document.getElementById('fontCustomInput');
+  if (fci) fci.value = TYPE.fontCustom || '';
   document.querySelectorAll('.seg2 button').forEach(b => b.classList.toggle('on', b.dataset.align === TYPE.align));
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', (c.dataset.color || '') === TYPE.textColor));
+  document.querySelectorAll('.chip').forEach(c => {
+    if (c.dataset.sel) return;
+    const cur = c.dataset.target === 'title' ? TYPE.h1Color : TYPE.textColor;
+    c.classList.toggle('on', (c.dataset.color || '') === cur);
+  });
 }
 
+
+/* ---------- 图标库 ---------- */
+const ICON_LIB = [
+  '✨','⭐','🌟','💡','📌','🔥','💖','🌸','🍀','🎯','✅','❤️','👍','🚀','🎉',
+  '🌈','☁️','🌙','☀️','✈️','📚','🧠','💪','🙏','🎁','🎀','🏆','🪄','🧸',
+  '☕','🍵','🕊️','🌊','🍃','🦋','🐳','🐟','📱','💻','🎧','🎬','🎵','🍰','🍹',
+  '🌹','🌷','💐','🌻','🌿','🍂','❄️','⚡','💧','📝','✏️','📎','🔖','🗂️','📊',
+  '💰','🧾','🛒','⚙️','🔧','🖥️','📈','🛡️','🧭','🔍','📣','🔔','⏰','🗓️','📅'
+];
+
+const ICON_LINES = ['───','────','──────','━━━','━━━━','┄┄┄','┅┅┅','┈┈┈','╌╌╌','····','·····','〰〰','~~~~'];
+
+const ICON_TAGS = {
+  '✦':'星 装饰', '✧':'星 装饰', '★':'星', '☆':'星', '✩':'星', '✪':'星',
+  '⭐':'星 星星', '🌟':'星 闪', '✨':'星 闪闪', '💫':'星 晕',
+  '🌙':'月 月亮', '☀️':'太阳 阳光', '🌈':'彩虹', '☁️':'云', '❄️':'雪 雪花', '⚡':'闪电', '🔥':'火 热', '💧':'水 水滴',
+  '🌸':'花 樱花', '🌺':'花', '🌷':'花 郁金香', '🌹':'花 玫瑰', '💐':'花 花束', '🌻':'花 向日葵', '🪷':'花 莲花',
+  '❤':'心 爱心 红心', '♡':'心 爱心', '♥':'心 爱心', '💖':'心 爱心 粉', '💗':'心 爱心', '💛':'心 黄心', '💚':'心 绿心', '💙':'心 蓝心', '💜':'心 紫心', '💝':'心 礼物',
+  '➤':'箭头 向右', '➜':'箭头 向右', '→':'箭头', '←':'箭头 向左', '↑':'箭头 向上', '↓':'箭头 向下', '➡':'箭头 向右', '⬅':'箭头 向左', '⬆':'箭头 向上', '⬇':'箭头 向下', '⇢':'箭头', '✈️':'飞机 飞行', '🚀':'火箭 飞船', '⚓':'锚', '🛸':'飞碟',
+  '🎀':'蝴蝶结 礼物', '🎁':'礼物', '🎈':'气球', '🎉':'庆祝 彩带', '🎊':'庆祝', '🎏':'鲤鱼旗',
+  '🧸':'熊 玩具', '🪄':'魔法 魔杖', '💡':'灯泡 想法', '📌':'图钉 定位', '🔖':'书签', '📚':'书 书籍', '✏️':'铅笔 笔', '🖊':'钢笔 笔', '📎':'回形针',
+  '✔':'对勾 对', '✓':'对勾 对', '✘':'叉 错', '☑':'勾选框 对', '☒':'方框叉',
+  '◆':'菱形 装饰', '◇':'菱形', '●':'圆点', '○':'圆圈', '■':'方块', '□':'方块', '▲':'三角', '△':'三角', '▼':'三角', '▽':'三角',
+  '😀':'笑脸 表情', '😊':'笑脸 微笑', '😍':'笑脸 爱', '🥰':'笑脸 爱', '👍':'赞 大拇指', '👏':'鼓掌', '🙏':'祈祷 谢谢', '💪':'力量 加油', '🎯':'目标 靶心', '🏆':'奖杯', '🥇':'金牌', '🧠':'思考 脑子', '📱':'手机', '💻':'电脑',
+  '①②③④⑤⑥⑦⑧⑨⑩':'数字 序号', '㊀㊁㊂㊃㊄':'数字 序号', '❶❷❸❹❺':'数字 序号', '➊➋➌➍➎':'数字 序号',
+  '•':'圆点 项目符号', '·':'点', '➖':'减号', '➕':'加号', '✚':'加号', '＊':'星号', '※':'重点 强调', '〰':'波浪线', '∞':'无穷'
+};
+
+const ICON_STORAGE_KEY = 'whale-paiban-custom-icons';
+
+function getCustomIcons() {
+  try { return JSON.parse(localStorage.getItem(ICON_STORAGE_KEY) || '[]'); } catch (e) { return []; }
+}
+
+function renderIconGrid() {
+  const q = (document.getElementById('iconSearch').value || '').trim();
+  const grid = document.getElementById('iconGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const custom = getCustomIcons();
+
+  if (q) {
+    const all = ICON_LIB.concat(ICON_LINES, custom);
+    const list = all.filter(ch => ch.includes(q) || (ICON_TAGS[ch] || '').includes(q));
+    if (!list.length) { grid.innerHTML = '<div class="icon-empty">没有匹配的图标</div>'; return; }
+    list.forEach(ch => grid.appendChild(buildIconBtn(ch)));
+    return;
+  }
+
+  const lineH = document.createElement('div');
+  lineH.className = 'icon-group-title';
+  lineH.textContent = '线条 / 分割线（点击插入整行）';
+  grid.appendChild(lineH);
+  ICON_LINES.forEach(tok => grid.appendChild(buildLineBtn(tok)));
+
+  const libH = document.createElement('div');
+  libH.className = 'icon-group-title';
+  libH.textContent = '常用公众号图标';
+  grid.appendChild(libH);
+  ICON_LIB.concat(custom).forEach(ch => grid.appendChild(buildIconBtn(ch)));
+}
+
+function buildIconBtn(ch) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'icon-item';
+  b.textContent = ch;
+  b.title = ch;
+  b.addEventListener('click', () => insertIcon(ch));
+  return b;
+}
+
+function buildLineBtn(tok) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'icon-item icon-line';
+  let kind = 'solid';
+  if (/[~〰·.]/.test(tok)) kind = 'dotted';
+  else if (/[┄┅┈╌]/.test(tok)) kind = 'dashed';
+  b.classList.add('icon-line-' + kind);
+  const bar = document.createElement('span');
+  bar.className = 'icon-line-bar';
+  b.appendChild(bar);
+  b.title = '插入分割线：' + tok;
+  b.addEventListener('click', () => insertLine(tok));
+  return b;
+}
+
+function insertLine(tok) {
+  const ta = document.getElementById('inputText');
+  recordHistory();
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const before = ta.value.slice(0, s), after = ta.value.slice(e);
+  const NL = String.fromCharCode(10);
+  const needBeforeNl = before && !before.endsWith(NL);
+  const needAfterNl = after && !after.startsWith(NL);
+  const ins = (needBeforeNl ? NL : '') + tok + (needAfterNl ? NL : '');
+  ta.value = before + ins + after;
+  ta.focus();
+  ta.setSelectionRange(s + ins.length, s + ins.length);
+  refreshFromTextarea();
+  showToast('已插入分割线，会按模板样式自动排版', '插入线条');
+}
+
+function insertIcon(ch) {
+  const ta = document.getElementById('inputText');
+  recordHistory();
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const before = ta.value.slice(0, s), after = ta.value.slice(e);
+  ta.value = before + ch + after;
+  ta.focus();
+  ta.setSelectionRange(s + ch.length, s + ch.length);
+  refreshFromTextarea();
+  showToast('已插入 ' + ch + '，可继续选择其他图标', '插入图标');
+}
+
+function initIconPanel() {
+  document.getElementById('iconAccHead').addEventListener('click', () => {
+    const acc = document.getElementById('iconAcc');
+    const open = acc.classList.toggle('open');
+    document.getElementById('iconAccHead').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) renderIconGrid();
+  });
+  document.getElementById('iconSearch').addEventListener('input', renderIconGrid);
+  document.getElementById('iconAddBtn').addEventListener('click', () => {
+    const inp = document.getElementById('iconCustomInput');
+    const val = (inp.value || '').trim();
+    if (!val) { showToast('请先粘贴一个表情或符号', '未输入图标'); return; }
+    const chars = Array.from(val);
+    const custom = getCustomIcons();
+    chars.forEach(ch => { if (ch && custom.indexOf(ch) < 0) custom.push(ch); });
+    try { localStorage.setItem(ICON_STORAGE_KEY, JSON.stringify(custom)); } catch (e) { /* ignore */ }
+    inp.value = '';
+    renderIconGrid();
+    showToast('已加入图标库（保存在本机）', '添加成功');
+  });
+  renderIconGrid();
+}
 
 /* ---------- 数据 ---------- */
 function getStyleCategories(platform) {
@@ -183,6 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
   buildTemplateGallery();
   initEvents();
   initQr();
+  initIconPanel();
   setTimeout(formatText, 60);
 });
 
@@ -578,6 +918,7 @@ function initEvents() {
   const input = document.getElementById('inputText');
   input.addEventListener('beforeinput', recordHistory);
   input.addEventListener('input', () => { formatText(); updateWordCount(); checkRiskWords(); });
+  input.addEventListener('select', readSelectionFormat);
 
   document.getElementById('clearBtn').addEventListener('click', clearInput);
   document.getElementById('copyBtn').addEventListener('click', copyToClipboard);

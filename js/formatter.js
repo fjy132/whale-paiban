@@ -17,6 +17,40 @@ function escapeHtml(text) {
         .replace(/"/g, '&quot;');
 }
 
+// 选区格式标记渲染：⟦s=18;c=#DC2626;f=kai;b=1⟧文字⟦/⟧ → <span style="...">文字</span>
+// 支持属性：s=字号(px) / c=颜色 / f=字体(键) / b=加粗
+const INLINE_FONT_MAP = {
+    sans: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif',
+    yahei: '"Microsoft YaHei", "PingFang SC", sans-serif',
+    hei: '"SimHei", "Microsoft YaHei", sans-serif',
+    song: '"SimSun", "Songti SC", serif',
+    serif: 'Georgia, "Times New Roman", "Songti SC", "SimSun", serif',
+    kai: '"KaiTi", "STKaiti", "Kaiti SC", serif',
+    fangsong: '"FangSong", "STFangsong", serif',
+    pingfang: '"PingFang SC", "Microsoft YaHei", sans-serif',
+    sourcehan: '"Source Han Sans SC", "Source Han Sans CN", "Microsoft YaHei", sans-serif',
+    sourcehanserif: '"Source Han Serif SC", "Source Han Serif CN", "SimSun", serif',
+    mono: '"SF Mono", Consolas, "Courier New", monospace'
+};
+function renderInline(escaped) {
+    return String(escaped).replace(/⟦([^⟧]*)⟧([^<>]*?)⟦\/⟧/g, function (m, props, inner) {
+        const p = {};
+        String(props).split(';').forEach(function (kv) {
+            const idx = kv.indexOf('=');
+            if (idx > 0) p[kv.slice(0, idx).trim()] = kv.slice(idx + 1).trim();
+        });
+        let css = '';
+        if (p.s) css += 'font-size:' + p.s + 'px;';
+        if (p.c) css += 'color:' + p.c + ';';
+        if (p.fc) css += 'font-family:"' + String(p.fc).replace(/"/g, '') + '", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;';
+        else if (p.f && INLINE_FONT_MAP[p.f]) css += 'font-family:' + INLINE_FONT_MAP[p.f] + ';';
+        if (p.b) css += 'font-weight:700;';
+        if (p.i) css += 'font-style:italic;';
+        if (p.u) css += 'text-decoration:underline;';
+        return '<span style="' + safeStyle(css) + '">' + inner + '</span>';
+    });
+}
+
 // 默认后备样式
 function getDefaultStyle() {
     return {
@@ -31,7 +65,9 @@ function getDefaultStyle() {
         listMarker: 'color: #3498db; margin-right: 8px; font-size: 14px; flex-shrink: 0;',
         spacing: 'height: 10px;',
         quote: 'margin: 16px 0; padding: 12px 16px; border-left: 4px solid #9ca3af; background: #f3f4f6; color: #374151; line-height: 1.9; font-size: 14.5px;',
-        divider: 'margin: 20px 0; border-top: 1px solid #d1d5db;'
+        divider: 'margin: 20px 0; border-top: 1px solid #d1d5db;',
+        dividerDashed: 'margin: 20px 0; border-top: 2px dashed #cbd5e1;',
+        dividerDotted: 'margin: 20px 0; border-top: 2px dotted #cbd5e1;'
     };
 }
 
@@ -66,6 +102,7 @@ const RE_META = /^(作者|编辑|文|图|来源|转载|日期|时间|公众号|�
 const RE_LIST_ITEM = /^[-*+\u2022\u2013\u2014]\s*/;
 const RE_QUOTE = /^>\s*/;
 const RE_DIVIDER = /^[-=_*]{3,}$/;
+const RE_DIVIDER_ALT = /^[─—~.·┄┅┈╌〰━]{2,}$/;
 
 // 文章主标题候选：首行短句（非编号、非列表、无句末标点、后面还有正文）
 function isLikelyTitle(line, lines, i) {
@@ -131,10 +168,14 @@ function parseAndFormat(text, style) {
         let wasHeading = false;
         let rendered = false;
 
-        // 分隔线：单独一行 --- / *** / ___
-        if (!rendered && RE_DIVIDER.test(trimmedLine)) {
+        // 分隔线：单独一行 --- / *** / ___ / ─── / ~~~~ / ┄┄┄ …
+        if (!rendered && (RE_DIVIDER.test(trimmedLine) || RE_DIVIDER_ALT.test(trimmedLine))) {
             if (inList) { html += '</ul>'; inList = false; }
-            html += '<div style="' + safeStyle(style.divider) + '"></div>';
+            let dkey = 'divider';
+            if (/[~〰·.]/.test(trimmedLine)) dkey = 'dividerDotted';
+            else if (/[┄┅┈╌━]/.test(trimmedLine)) dkey = 'dividerDashed';
+            const ds = style[dkey] || getDefaultStyle()[dkey] || style.divider || '';
+            html += '<div style="' + safeStyle(ds) + '"></div>';
             rendered = true;
             wasHeading = false;
         }
@@ -272,7 +313,7 @@ function parseAndFormat(text, style) {
 
     if (inList) { html += '</ul>'; }
     html += '</div>';
-    return html;
+    return renderInline(html);
 }
 
 // 导出到全局（浏览器）

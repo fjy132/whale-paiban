@@ -133,6 +133,29 @@
         </div>
       </div>
 
+      <div class="acc" id="iconAcc">
+        <button type="button" class="acc-head" id="iconAccHead" aria-expanded="false">
+          <span class="acc-title">图标库</span>
+          <span class="acc-chev">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </button>
+        <div class="acc-body" id="iconAccBody">
+          <div class="acc-inner">
+            <p class="sel-hint">点一下图标，就会插入到文章里光标所在的位置；也可以自己粘贴喜欢的表情/符号添加进来</p>
+            <div class="search icon-search">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input id="iconSearch" type="text" placeholder="搜索图标" autocomplete="off">
+            </div>
+            <div class="icon-grid" id="iconGrid"></div>
+            <div class="icon-custom">
+              <input id="iconCustomInput" type="text" class="text-input" placeholder="粘贴任意表情/符号，如 🚀 ➤ ✿ ❤" autocomplete="off">
+              <button type="button" class="btn ghost sm" id="iconAddBtn">加入图标库</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="acc open" id="typeAcc">
         <button type="button" class="acc-head" id="typeAccHead" aria-expanded="true">
           <span class="acc-title">文字样式</span>
@@ -141,48 +164,67 @@
           </span>
         </button>
         <div class="acc-body" id="typeAccBody">
-          <div class="acc-inner type-body">
-            <div class="field">
-              <label>字体</label>
-              <select id="typeFont">
+                    <div class="acc-inner type-body">
+            <div class="tb-tip">先选中文字，再点 B / I / U / 选中颜色可只改选中部分；其余选项作用于整篇</div>
+
+            <div class="tb-row">
+              <span class="tb-label">字号</span>
+              <div class="stepper sm"><button type="button" data-key="baseSize" data-d="-1">−</button><span id="v-baseSize">15px</span><button type="button" data-key="baseSize" data-d="1">+</button></div>
+              <span class="tb-label">标题字号</span>
+              <div class="stepper sm"><button type="button" data-key="h1Size" data-d="-1">−</button><span id="v-h1Size">21px</span><button type="button" data-key="h1Size" data-d="1">+</button></div>
+            </div>
+
+            <div class="tb-row">
+              <span class="tb-label">字体</span>
+              <select id="typeFont" class="tb-select">
                 <option value="default">跟随模板</option>
                 <option value="sans">无衬线</option>
                 <option value="yahei">微软雅黑</option>
+                <option value="hei">黑体 SimHei</option>
+                <option value="song">宋体 SimSun</option>
                 <option value="serif">衬线</option>
                 <option value="kai">楷体</option>
                 <option value="fangsong">仿宋</option>
+                <option value="pingfang">苹方 PingFang</option>
+                <option value="sourcehan">思源黑体</option>
+                <option value="sourcehanserif">思源宋体</option>
                 <option value="mono">等宽</option>
+                <option value="custom">自定义本地字体…</option>
               </select>
             </div>
-            <div class="field">
-              <label>正文字号</label>
-              <div class="stepper"><button type="button" data-key="baseSize" data-d="-1">−</button><span id="v-baseSize">15px</span><button type="button" data-key="baseSize" data-d="1">+</button></div>
+            <div class="tb-row">
+              <span class="tb-label">本地字体</span>
+              <input id="fontCustomInput" type="text" class="text-input" placeholder="电脑里安装的字体名，如 HarmonyOS Sans SC" autocomplete="off">
             </div>
-            <div class="field">
-              <label>标题字号</label>
-              <div class="stepper"><button type="button" data-key="h1Size" data-d="-1">−</button><span id="v-h1Size">21px</span><button type="button" data-key="h1Size" data-d="1">+</button></div>
+
+            <div class="tb-row">
+              <span class="tb-label">行距</span>
+              <div class="stepper sm"><button type="button" data-key="lineHeight" data-d="-1">−</button><span id="v-lineHeight">1.8</span><button type="button" data-key="lineHeight" data-d="1">+</button></div>
+              <span class="tb-label">标题行距</span>
+              <div class="stepper sm"><button type="button" data-key="h1LineHeight" data-d="-1">−</button><span id="v-h1LineHeight">1.5</span><button type="button" data-key="h1LineHeight" data-d="1">+</button></div>
             </div>
-            <div class="field">
-              <label>行距</label>
-              <div class="stepper"><button type="button" data-key="lineHeight" data-d="-1">−</button><span id="v-lineHeight">1.8</span><button type="button" data-key="lineHeight" data-d="1">+</button></div>
+
+            <div class="tb-row">
+              <span class="tb-label">字距</span>
+              <div class="stepper sm"><button type="button" data-key="letterSpacing" data-d="-1">−</button><span id="v-letterSpacing">0.3px</span><button type="button" data-key="letterSpacing" data-d="1">+</button></div>
+              <span class="tb-label">段距</span>
+              <div class="stepper sm"><button type="button" data-key="paraMargin" data-d="-1">−</button><span id="v-paraMargin">12px</span><button type="button" data-key="paraMargin" data-d="1">+</button></div>
+              <span class="tb-label">缩进</span>
+              <div class="stepper sm"><button type="button" data-key="textIndent" data-d="-1">−</button><span id="v-textIndent">0</span><button type="button" data-key="textIndent" data-d="1">+</button></div>
             </div>
-            <div class="field">
-              <label>字间距</label>
-              <div class="stepper"><button type="button" data-key="letterSpacing" data-d="-1">−</button><span id="v-letterSpacing">0.3px</span><button type="button" data-key="letterSpacing" data-d="1">+</button></div>
-            </div>
-            <div class="field">
-              <label>段间距</label>
-              <div class="stepper"><button type="button" data-key="paraMargin" data-d="-1">−</button><span id="v-paraMargin">12px</span><button type="button" data-key="paraMargin" data-d="1">+</button></div>
-            </div>
-            <div class="field">
-              <label>对齐</label>
+
+            <div class="tb-row">
+              <span class="tb-label">对齐</span>
               <div class="seg2">
-                <button type="button" class="on" data-align="justify">两端对齐</button>
-                <button type="button" data-align="left">左对齐</button>
+                <button type="button" class="on" data-align="justify">两端</button>
+                <button type="button" data-align="left">左</button>
+                <button type="button" data-align="center">居中</button>
+                <button type="button" data-align="right">右</button>
               </div>
             </div>
-            <div class="field">
-              <label>正文颜色</label>
+
+            <div class="tb-row tb-color">
+              <span class="tb-label">正文色</span>
               <div class="chips">
                 <button type="button" class="chip chip-text on" data-color="">跟随</button>
                 <button type="button" class="chip" data-color="#3F3F46" style="--c:#3F3F46" title="深灰"></button>
@@ -192,7 +234,73 @@
                 <button type="button" class="chip" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
               </div>
             </div>
-            <button type="button" class="btn ghost sm reset-type" id="typeReset">重置文字样式</button>
+            <div class="tb-row tb-color">
+              <span class="tb-label">标题色</span>
+              <div class="chips">
+                <button type="button" class="chip chip-text on" data-target="title" data-color="">跟随</button>
+                <button type="button" class="chip" data-target="title" data-color="#18181B" style="--c:#18181B" title="墨黑"></button>
+                <button type="button" class="chip" data-target="title" data-color="#1F2937" style="--c:#1F2937" title="深灰蓝"></button>
+                <button type="button" class="chip" data-target="title" data-color="#7C3AED" style="--c:#7C3AED" title="紫"></button>
+                <button type="button" class="chip" data-target="title" data-color="#2563EB" style="--c:#2563EB" title="蓝"></button>
+                <button type="button" class="chip" data-target="title" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
+              </div>
+            </div>
+
+            <div class="sel-box tb-selbox">
+              <div class="tb-row tb-sep">
+                <span class="tb-label">选中文字</span>
+                <div class="stepper sm"><button type="button" data-sel="size" data-d="-1">−</button><span id="v-selSize">跟随</span><button type="button" data-sel="size" data-d="1">+</button></div>
+                <button type="button" class="tb-btn" id="selBold" title="加粗（先选中文字）">B</button>
+                <button type="button" class="tb-btn" id="tbItalic" title="斜体（先选中文字）">I</button>
+                <button type="button" class="tb-btn" id="tbUnderline" title="下划线（先选中文字）">U</button>
+              </div>
+              <div class="tb-row">
+                <span class="tb-label">选中字体</span>
+                <select id="selFont" class="tb-select">
+                  <option value="default">跟随</option>
+                  <option value="sans">无衬线</option>
+                  <option value="yahei">微软雅黑</option>
+                  <option value="hei">黑体 SimHei</option>
+                  <option value="song">宋体 SimSun</option>
+                  <option value="serif">衬线</option>
+                  <option value="kai">楷体</option>
+                  <option value="fangsong">仿宋</option>
+                  <option value="pingfang">苹方 PingFang</option>
+                  <option value="sourcehan">思源黑体</option>
+                  <option value="sourcehanserif">思源宋体</option>
+                  <option value="mono">等宽</option>
+                  <option value="custom">自定义本地字体…</option>
+                </select>
+              </div>
+              <div class="tb-row">
+                <span class="tb-label">本地字体</span>
+                <input id="selFontCustom" type="text" class="text-input" placeholder="电脑里的字体名，如 HarmonyOS Sans SC" autocomplete="off">
+              </div>
+              <div class="tb-row tb-color">
+                <span class="tb-label">选中颜色</span>
+                <div class="chips sel-chips">
+                  <button type="button" class="chip chip-text on" data-sel="color" data-color="">跟随</button>
+                  <button type="button" class="chip" data-sel="color" data-color="#3F3F46" style="--c:#3F3F46" title="深灰"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#18181B" style="--c:#18181B" title="墨黑"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#EA580C" style="--c:#EA580C" title="橙"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#D97706" style="--c:#D97706" title="金"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#92400E" style="--c:#92400E" title="棕"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#2563EB" style="--c:#2563EB" title="蓝"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#0891B2" style="--c:#0891B2" title="青"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#16A34A" style="--c:#16A34A" title="绿"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#7C3AED" style="--c:#7C3AED" title="紫"></button>
+                  <button type="button" class="chip" data-sel="color" data-color="#EC4899" style="--c:#EC4899" title="粉"></button>
+                  <label class="color-picker" title="自定义颜色">
+                    <input type="color" id="selColorCustom" value="#7C3AED">
+                  </label>
+                </div>
+              </div>
+              <div class="tb-row tb-actions">
+                <button type="button" class="btn ghost sm" id="selClear">清除选中格式</button>
+                <button type="button" class="btn ghost sm" id="typeReset">重置全部</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
