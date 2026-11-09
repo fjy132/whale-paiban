@@ -211,7 +211,7 @@
     }
     .ins-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
     .input-area {
-      flex: 1; min-height: 0; resize: none;
+      flex: 1; min-height: 120px; resize: none;
       border: 1px solid var(--hairline-2); border-radius: var(--r-sm);
       background: var(--panel-2); color: var(--ink);
       padding: 13px 14px; font-size: 13.5px; line-height: 1.85;
@@ -223,6 +223,40 @@
     .input-area.drag-over { border-color: var(--primary); background: var(--primary-soft); }
     .right-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; flex: none; }
     .word-count { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+    /* ============ 样式调整面板 ============ */
+    .style-panel { flex: none; margin-top: 12px; border: 1px solid var(--hairline); border-radius: 10px; overflow: hidden; background: var(--panel-2); }
+    .style-panel-head {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px; border: none; background: transparent;
+      font-size: 12.5px; font-weight: 700; color: var(--text-2); font-family: inherit;
+    }
+    .style-chev { transition: transform 0.25s var(--ease); color: var(--faint); font-size: 11px; }
+    .style-chev.open { transform: rotate(180deg); }
+    .style-panel-body { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 9px; border-top: 1px solid var(--hairline); max-height: 40vh; overflow-y: auto; }
+    .srow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .srow > label { font-size: 12px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
+    .srow select {
+      flex: 1; max-width: 150px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink);
+      background: var(--panel); border: 1px solid var(--hairline-2); border-radius: 7px;
+      padding: 5px 8px; outline: none;
+    }
+    .srow select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .srow .seg { display: inline-flex; border: 1px solid var(--hairline-2); border-radius: 7px; overflow: hidden; background: var(--panel); }
+    .srow .seg button { border: none; background: transparent; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 5px 9px; }
+    .srow .seg button + button { border-left: 1px solid var(--hairline-2); }
+    .srow .seg button.on { background: var(--primary); color: #fff; }
+    .swatches { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .sw {
+      width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--hairline-2);
+      background: var(--c, transparent); padding: 0; cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .sw:hover { transform: scale(1.12); }
+    .sw.on { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+    .sw-text { width: auto; height: auto; border-radius: 999px; padding: 3px 9px; font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--panel); }
+    .sw-text.on { color: var(--primary); border-color: var(--primary); }
+    .style-reset { align-self: flex-start; margin-top: 2px; }
 
     /* ============ 底部栏 ============ */
     .footer {
@@ -343,6 +377,102 @@
         <span class="word-count">{{ markdownInput.length }} 字</span>
         <button type="button" class="btn primary sm" @click="smartFormat">一键排版</button>
       </div>
+
+      <!-- 样式调整（文字 / 图片基础编辑） -->
+      <div class="style-panel">
+        <button type="button" class="style-panel-head" @click="styleOpen = !styleOpen">
+          <span>样式调整（文字 / 图片）</span>
+          <span class="style-chev" :class="{ open: styleOpen }">▾</span>
+        </button>
+        <div class="style-panel-body" v-show="styleOpen">
+          <div class="srow">
+            <label>正文字号</label>
+            <select v-model="styleOverride.fontSize">
+              <option value="">跟随模板</option>
+              <option value="14px">14px</option>
+              <option value="15px">15px</option>
+              <option value="16px">16px</option>
+              <option value="17px">17px</option>
+              <option value="18px">18px</option>
+              <option value="20px">20px</option>
+            </select>
+          </div>
+          <div class="srow">
+            <label>行距</label>
+            <select v-model="styleOverride.lineHeight">
+              <option value="">跟随模板</option>
+              <option value="1.5">1.5</option>
+              <option value="1.6">1.6</option>
+              <option value="1.7">1.7</option>
+              <option value="1.8">1.8</option>
+              <option value="1.9">1.9</option>
+              <option value="2.0">2.0</option>
+            </select>
+          </div>
+          <div class="srow">
+            <label>对齐</label>
+            <div class="seg">
+              <button type="button" :class="{ on: !styleOverride.align }" @click="styleOverride.align = ''">跟随</button>
+              <button type="button" :class="{ on: styleOverride.align === 'justify' }" @click="styleOverride.align = 'justify'">两端</button>
+              <button type="button" :class="{ on: styleOverride.align === 'left' }" @click="styleOverride.align = 'left'">左</button>
+              <button type="button" :class="{ on: styleOverride.align === 'center' }" @click="styleOverride.align = 'center'">中</button>
+              <button type="button" :class="{ on: styleOverride.align === 'right' }" @click="styleOverride.align = 'right'">右</button>
+            </div>
+          </div>
+          <div class="srow">
+            <label>正文色</label>
+            <div class="swatches">
+              <button type="button" class="sw sw-text" :class="{ on: !styleOverride.textColor }" @click="styleOverride.textColor = ''">跟随</button>
+              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#3f3f46' }" style="--c:#3f3f46" @click="styleOverride.textColor = '#3f3f46'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#18181b' }" style="--c:#18181b" @click="styleOverride.textColor = '#18181b'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#2563eb' }" style="--c:#2563eb" @click="styleOverride.textColor = '#2563eb'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#16a34a' }" style="--c:#16a34a" @click="styleOverride.textColor = '#16a34a'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#dc2626' }" style="--c:#dc2626" @click="styleOverride.textColor = '#dc2626'"></button>
+            </div>
+          </div>
+          <div class="srow">
+            <label>标题色</label>
+            <div class="swatches">
+              <button type="button" class="sw sw-text" :class="{ on: !styleOverride.headingColor }" @click="styleOverride.headingColor = ''">跟随</button>
+              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#18181b' }" style="--c:#18181b" @click="styleOverride.headingColor = '#18181b'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#7c3aed' }" style="--c:#7c3aed" @click="styleOverride.headingColor = '#7c3aed'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#2563eb' }" style="--c:#2563eb" @click="styleOverride.headingColor = '#2563eb'"></button>
+              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#dc2626' }" style="--c:#dc2626" @click="styleOverride.headingColor = '#dc2626'"></button>
+            </div>
+          </div>
+          <div class="srow">
+            <label>图片宽度</label>
+            <select v-model="styleOverride.imgWidth">
+              <option value="">跟随模板</option>
+              <option value="100%">100%</option>
+              <option value="80%">80%</option>
+              <option value="60%">60%</option>
+              <option value="50%">50%</option>
+            </select>
+          </div>
+          <div class="srow">
+            <label>图片圆角</label>
+            <select v-model="styleOverride.imgRadius">
+              <option value="">跟随模板</option>
+              <option value="0px">0</option>
+              <option value="4px">4px</option>
+              <option value="8px">8px</option>
+              <option value="12px">12px</option>
+              <option value="16px">16px</option>
+            </select>
+          </div>
+          <div class="srow">
+            <label>图片对齐</label>
+            <div class="seg">
+              <button type="button" :class="{ on: !styleOverride.imgAlign }" @click="styleOverride.imgAlign = ''">跟随</button>
+              <button type="button" :class="{ on: styleOverride.imgAlign === 'left' }" @click="styleOverride.imgAlign = 'left'">左</button>
+              <button type="button" :class="{ on: styleOverride.imgAlign === 'center' }" @click="styleOverride.imgAlign = 'center'">中</button>
+              <button type="button" :class="{ on: styleOverride.imgAlign === 'right' }" @click="styleOverride.imgAlign = 'right'">右</button>
+            </div>
+          </div>
+          <button type="button" class="btn ghost sm style-reset" @click="resetStyle">重置样式微调</button>
+        </div>
+      </div>
     </aside>
   </div>
 
@@ -385,7 +515,7 @@
   })();
 </script>
 
-<script src="styles.js?v=32" defer></script>
-<script src="app.js?v=32" defer></script>
+<script src="styles.js?v=33" defer></script>
+<script src="app.js?v=33" defer></script>
 </body>
 </html>

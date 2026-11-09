@@ -568,6 +568,12 @@ const editorApp = createApp({
       currentStyle: 'wechat-default',
       copySuccess: false,
       tplSearch: '',        // 模板搜索关键词
+      // 文字/图片基础编辑：空字符串 = 跟随模板
+      styleOverride: {
+        fontSize: '', lineHeight: '', align: '', textColor: '', headingColor: '',
+        imgWidth: '', imgRadius: '', imgAlign: ''
+      },
+      styleOpen: false,
       starredStyles: [],
       includeGif: true,  // 复制时是否包含 GIF（默认包含；关闭则替换为占位提示）
       hasGif: false,     // 当前内容是否含 GIF（仅此时显示「含 GIF」开关）
@@ -728,6 +734,12 @@ const editorApp = createApp({
       }
       // 保存样式偏好
       this.saveUserPreferences();
+    },
+    styleOverride: {
+      handler() {
+        if (this.md) this.renderMarkdown();
+      },
+      deep: true
     },
     markdownInput(newVal, oldVal) {
       if (this.md) {
@@ -1125,6 +1137,9 @@ const markdown = \`![图片](img://\${imageId})\`;
       // 应用样式
       html = this.applyInlineStyles(html);
 
+      // 叠加文字/图片基础编辑微调
+      html = this.applyStyleOverrides(html);
+
       this.renderedContent = html;
 
       // 异步检测内容是否含 GIF（决定是否显示「含 GIF」开关），不阻塞渲染
@@ -1487,6 +1502,55 @@ const markdown = \`![图片](img://\${imageId})\`;
       container.innerHTML = doc.body.innerHTML;
 
       return container.outerHTML;
+    },
+
+    // 文字/图片基础编辑：在模板样式之上叠加用户微调（字号/行距/对齐/颜色/图片尺寸等）。
+    // 空字符串表示跟随模板，不覆盖。
+    applyStyleOverrides(html) {
+      const ov = this.styleOverride || {};
+      const keys = ['fontSize', 'lineHeight', 'align', 'textColor', 'headingColor', 'imgWidth', 'imgRadius', 'imgAlign'];
+      if (!html || !keys.some(k => ov[k])) return html;
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const setI = (el, prop, val) => {
+        if (val) el.style.setProperty(prop, val, 'important');
+      };
+
+      // 正文类元素
+      doc.querySelectorAll('p, li, td, th, blockquote').forEach(el => {
+        setI(el, 'font-size', ov.fontSize);
+        setI(el, 'line-height', ov.lineHeight);
+        setI(el, 'text-align', ov.align);
+        setI(el, 'color', ov.textColor);
+      });
+
+      // 标题
+      doc.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+        setI(el, 'color', ov.headingColor);
+        setI(el, 'text-align', ov.align);
+      });
+
+      // 图片
+      doc.querySelectorAll('img').forEach(el => {
+        setI(el, 'width', ov.imgWidth);
+        setI(el, 'border-radius', ov.imgRadius);
+        if (ov.imgAlign) {
+          const parent = el.parentElement;
+          if (parent) setI(parent, 'text-align', ov.imgAlign);
+        }
+      });
+
+      return doc.body.innerHTML;
+    },
+
+    // 重置文字/图片微调
+    resetStyle() {
+      this.styleOverride = {
+        fontSize: '', lineHeight: '', align: '', textColor: '', headingColor: '',
+        imgWidth: '', imgRadius: '', imgAlign: ''
+      };
+      this.showToast('已重置样式微调', 'success');
     },
 
     groupConsecutiveImages(doc) {
