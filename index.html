@@ -257,6 +257,8 @@
     .sw-text { width: auto; height: auto; border-radius: 999px; padding: 3px 9px; font-size: 10.5px; font-weight: 700; color: var(--muted); background: var(--panel); }
     .sw-text.on { color: var(--primary); border-color: var(--primary); }
     .style-reset { align-self: flex-start; margin-top: 2px; }
+    .style-hint { font-size: 11px; line-height: 1.6; color: var(--muted); background: var(--primary-soft); border-radius: 8px; padding: 7px 10px; }
+    .img-selected { outline: 3px solid var(--primary) !important; outline-offset: 2px; }
 
     /* ============ 底部栏 ============ */
     .footer {
@@ -335,7 +337,7 @@
       </div>
       <div class="canvas-dots">
         <div class="page">
-          <div class="preview-area" ref="previewScroll">
+          <div class="preview-area" ref="previewScroll" @click="onPreviewClick">
             <div v-if="!renderedContent" class="empty-state">
               <p>在右侧粘贴文字，左边选一个模板，这里实时预览排版效果</p>
             </div>
@@ -379,99 +381,70 @@
         <button type="button" class="btn primary sm" @click="smartFormat">一键排版</button>
       </div>
 
-      <!-- 样式调整（文字 / 图片基础编辑） -->
+      <!-- 选区样式：只作用于选中的文字 / 点选的图片 -->
       <div class="style-panel">
         <button type="button" class="style-panel-head" @click="styleOpen = !styleOpen">
-          <span>样式调整（文字 / 图片）</span>
+          <span>选区样式（选中文字 / 点选图片）</span>
           <span class="style-chev" :class="{ open: styleOpen }">▾</span>
         </button>
         <div class="style-panel-body" v-show="styleOpen">
+          <p class="style-hint">先在中间预览里「选中文字」或「点一下图片」，再点下面的按钮 —— 只作用于选中的部分，不会改动全文。</p>
+
           <div class="srow">
-            <label>正文字号</label>
-            <select v-model="styleOverride.fontSize">
-              <option value="">跟随模板</option>
-              <option value="14px">14px</option>
-              <option value="15px">15px</option>
-              <option value="16px">16px</option>
-              <option value="17px">17px</option>
-              <option value="18px">18px</option>
-              <option value="20px">20px</option>
-            </select>
-          </div>
-          <div class="srow">
-            <label>行距</label>
-            <select v-model="styleOverride.lineHeight">
-              <option value="">跟随模板</option>
-              <option value="1.5">1.5</option>
-              <option value="1.6">1.6</option>
-              <option value="1.7">1.7</option>
-              <option value="1.8">1.8</option>
-              <option value="1.9">1.9</option>
-              <option value="2.0">2.0</option>
-            </select>
-          </div>
-          <div class="srow">
-            <label>对齐</label>
+            <label>文字</label>
             <div class="seg">
-              <button type="button" :class="{ on: !styleOverride.align }" @click="styleOverride.align = ''">跟随</button>
-              <button type="button" :class="{ on: styleOverride.align === 'justify' }" @click="styleOverride.align = 'justify'">两端</button>
-              <button type="button" :class="{ on: styleOverride.align === 'left' }" @click="styleOverride.align = 'left'">左</button>
-              <button type="button" :class="{ on: styleOverride.align === 'center' }" @click="styleOverride.align = 'center'">中</button>
-              <button type="button" :class="{ on: styleOverride.align === 'right' }" @click="styleOverride.align = 'right'">右</button>
+              <button type="button" @click="applyTextStyle('font-weight', 'bold')"><b>B</b></button>
+              <button type="button" @click="applyTextStyle('font-style', 'italic')"><i>I</i></button>
+              <button type="button" @click="applyTextStyle('text-decoration', 'underline')"><u>U</u></button>
             </div>
           </div>
           <div class="srow">
-            <label>正文色</label>
-            <div class="swatches">
-              <button type="button" class="sw sw-text" :class="{ on: !styleOverride.textColor }" @click="styleOverride.textColor = ''">跟随</button>
-              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#3f3f46' }" style="--c:#3f3f46" @click="styleOverride.textColor = '#3f3f46'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#18181b' }" style="--c:#18181b" @click="styleOverride.textColor = '#18181b'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#2563eb' }" style="--c:#2563eb" @click="styleOverride.textColor = '#2563eb'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#16a34a' }" style="--c:#16a34a" @click="styleOverride.textColor = '#16a34a'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.textColor === '#dc2626' }" style="--c:#dc2626" @click="styleOverride.textColor = '#dc2626'"></button>
+            <label>字号</label>
+            <div class="seg">
+              <button type="button" @click="applyTextStyle('font-size', '14px')">小</button>
+              <button type="button" @click="applyTextStyle('font-size', '16px')">中</button>
+              <button type="button" @click="applyTextStyle('font-size', '20px')">大</button>
+              <button type="button" @click="applyTextStyle('font-size', '24px')">超大</button>
             </div>
           </div>
           <div class="srow">
-            <label>标题色</label>
+            <label>文字色</label>
             <div class="swatches">
-              <button type="button" class="sw sw-text" :class="{ on: !styleOverride.headingColor }" @click="styleOverride.headingColor = ''">跟随</button>
-              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#18181b' }" style="--c:#18181b" @click="styleOverride.headingColor = '#18181b'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#7c3aed' }" style="--c:#7c3aed" @click="styleOverride.headingColor = '#7c3aed'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#2563eb' }" style="--c:#2563eb" @click="styleOverride.headingColor = '#2563eb'"></button>
-              <button type="button" class="sw" :class="{ on: styleOverride.headingColor === '#dc2626' }" style="--c:#dc2626" @click="styleOverride.headingColor = '#dc2626'"></button>
+              <button type="button" class="sw" style="--c:#3f3f46" @click="applyTextStyle('color', '#3f3f46')" title="深灰"></button>
+              <button type="button" class="sw" style="--c:#18181b" @click="applyTextStyle('color', '#18181b')" title="墨黑"></button>
+              <button type="button" class="sw" style="--c:#dc2626" @click="applyTextStyle('color', '#dc2626')" title="红"></button>
+              <button type="button" class="sw" style="--c:#ea580c" @click="applyTextStyle('color', '#ea580c')" title="橙"></button>
+              <button type="button" class="sw" style="--c:#2563eb" @click="applyTextStyle('color', '#2563eb')" title="蓝"></button>
+              <button type="button" class="sw" style="--c:#16a34a" @click="applyTextStyle('color', '#16a34a')" title="绿"></button>
+              <button type="button" class="sw" style="--c:#7c3aed" @click="applyTextStyle('color', '#7c3aed')" title="紫"></button>
             </div>
           </div>
+
           <div class="srow">
             <label>图片宽度</label>
-            <select v-model="styleOverride.imgWidth">
-              <option value="">跟随模板</option>
-              <option value="100%">100%</option>
-              <option value="80%">80%</option>
-              <option value="60%">60%</option>
-              <option value="50%">50%</option>
-            </select>
+            <div class="seg">
+              <button type="button" @click="applyImageStyle('width', '100%')">100%</button>
+              <button type="button" @click="applyImageStyle('width', '60%')">60%</button>
+              <button type="button" @click="applyImageStyle('width', '40%')">40%</button>
+            </div>
           </div>
           <div class="srow">
             <label>图片圆角</label>
-            <select v-model="styleOverride.imgRadius">
-              <option value="">跟随模板</option>
-              <option value="0px">0</option>
-              <option value="4px">4px</option>
-              <option value="8px">8px</option>
-              <option value="12px">12px</option>
-              <option value="16px">16px</option>
-            </select>
+            <div class="seg">
+              <button type="button" @click="applyImageStyle('border-radius', '0px')">0</button>
+              <button type="button" @click="applyImageStyle('border-radius', '8px')">8</button>
+              <button type="button" @click="applyImageStyle('border-radius', '16px')">16</button>
+            </div>
           </div>
           <div class="srow">
             <label>图片对齐</label>
             <div class="seg">
-              <button type="button" :class="{ on: !styleOverride.imgAlign }" @click="styleOverride.imgAlign = ''">跟随</button>
-              <button type="button" :class="{ on: styleOverride.imgAlign === 'left' }" @click="styleOverride.imgAlign = 'left'">左</button>
-              <button type="button" :class="{ on: styleOverride.imgAlign === 'center' }" @click="styleOverride.imgAlign = 'center'">中</button>
-              <button type="button" :class="{ on: styleOverride.imgAlign === 'right' }" @click="styleOverride.imgAlign = 'right'">右</button>
+              <button type="button" @click="applyImageStyle('align', 'left')">左</button>
+              <button type="button" @click="applyImageStyle('align', 'center')">中</button>
+              <button type="button" @click="applyImageStyle('align', 'right')">右</button>
             </div>
           </div>
-          <button type="button" class="btn ghost sm style-reset" @click="resetStyle">重置样式微调</button>
+          <button type="button" class="btn ghost sm style-reset" @click="applyTextStyle('clear', '')">清除选中文字格式</button>
         </div>
       </div>
     </aside>
@@ -516,7 +489,7 @@
   })();
 </script>
 
-<script src="styles.js?v=34" defer></script>
-<script src="app.js?v=34" defer></script>
+<script src="styles.js?v=35" defer></script>
+<script src="app.js?v=35" defer></script>
 </body>
 </html>

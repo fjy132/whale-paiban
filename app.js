@@ -1574,6 +1574,88 @@ const markdown = \`![图片](img://\${imageId})\`;
       this.showToast('已重置样式微调', 'success');
     },
 
+    // ===== 选区样式：只作用于「选中的文字」或「点选的图片」 =====
+    // 点预览里的图片 → 选中它；点空白 → 取消选中
+    onPreviewClick(e) {
+      const pv = this.$refs.previewScroll;
+      if (!pv) return;
+      pv.querySelectorAll('img.img-selected').forEach(x => x.classList.remove('img-selected'));
+      const img = (e.target && e.target.tagName === 'IMG') ? e.target : null;
+      if (img && pv.contains(img)) {
+        img.classList.add('img-selected');
+        this._selectedImage = img;
+      } else {
+        this._selectedImage = null;
+      }
+    },
+
+    // 把「预览里选中的文字」包进 span 加样式
+    applyTextStyle(prop, val) {
+      const pv = this.$refs.previewScroll;
+      const sel = window.getSelection();
+      if (!pv || !sel || sel.rangeCount === 0 || sel.isCollapsed) {
+        this.showToast('请先在中间预览里选中要调整的文字', 'error');
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      if (!pv.contains(range.commonAncestorContainer)) {
+        this.showToast('请先在中间预览里选中文字', 'error');
+        return;
+      }
+
+      if (prop === 'clear') {
+        const frag = range.extractContents();
+        const spans = frag.querySelectorAll('span');
+        spans.forEach(sp => {
+          const parent = sp.parentNode;
+          if (!parent) return;
+          while (sp.firstChild) parent.insertBefore(sp.firstChild, sp);
+          parent.removeChild(sp);
+        });
+        range.insertNode(frag);
+        this.showToast('已清除选中文字格式', 'success');
+        return;
+      }
+
+      const span = document.createElement('span');
+      span.style.setProperty(prop, val, 'important');
+      try {
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+      } catch (err) {
+        this.showToast('无法应用格式，请重选一次', 'error');
+        return;
+      }
+      this.showToast('已应用到选中文字', 'success');
+    },
+
+    // 给「点选的图片」加样式
+    applyImageStyle(prop, val) {
+      const img = this._selectedImage;
+      const pv = this.$refs.previewScroll;
+      if (!img || !pv || !pv.contains(img)) {
+        this.showToast('请先点一下要调整的图片', 'error');
+        return;
+      }
+      if (prop === 'align') {
+        if (img.parentElement) img.parentElement.style.setProperty('text-align', val, 'important');
+      } else {
+        img.style.setProperty(prop, val, 'important');
+      }
+      this.showToast('已应用到选中图片', 'success');
+    },
+
+    // 读取预览区当前真实内容（含选区/图片的临时修改），供复制使用
+    getLiveContent() {
+      const pv = this.$refs.previewScroll;
+      if (!pv) return this.renderedContent;
+      const container = pv.querySelector('.preview-container');
+      if (!container) return this.renderedContent;
+      // 复制前先去掉选中高亮
+      container.querySelectorAll('img.img-selected').forEach(x => x.classList.remove('img-selected'));
+      return container.innerHTML;
+    },
+
     groupConsecutiveImages(doc) {
       const body = doc.body;
       const children = Array.from(body.children);
@@ -1887,7 +1969,8 @@ const markdown = \`![图片](img://\${imageId})\`;
 
       try {
         const parser = new DOMParser();
-        const doc = parser.parseFromString(this.renderedContent, 'text/html');
+        // 用预览区当前内容（包含选区文字样式 / 单张图片调整），而不是旧的 renderedContent
+        const doc = parser.parseFromString(this.getLiveContent(), 'text/html');
 
         // 将图片网格转换为 table 布局（公众号兼容）
         this.convertGridToTable(doc);
