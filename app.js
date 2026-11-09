@@ -781,6 +781,56 @@ const editorApp = createApp({
       });
     },
 
+    // 一键排版：把普通文字自动整理成带结构的 Markdown（主标题/小标题/列表/引用），
+    // 配合当前模板即可实现「粘贴一段文字 → 一键套用模板格式」。
+    smartFormat() {
+      const raw = (this.markdownInput || '').replace(/\r\n/g, '\n');
+      if (!raw.trim()) {
+        this.showToast('请先粘贴或输入文字', 'error');
+        return;
+      }
+
+      const lines = raw.split('\n');
+      const out = [];
+      let hasTitle = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        const rawLine = lines[i];
+        const t = rawLine.trim();
+        if (!t) { out.push(''); continue; }
+
+        // 已经是 Markdown 标记的行，原样保留
+        if (/^#{1,6}\s/.test(t)) { out.push(t); hasTitle = true; continue; }
+        if (/^>\s?/.test(t)) { out.push(t); continue; }
+        if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { out.push('---'); continue; }
+        // 列表：- · • * 开头
+        if (/^[-·•*]\s+/.test(t) && !/^\*\*/.test(t)) {
+          out.push('- ' + t.replace(/^[-·•*]\s+/, ''));
+          continue;
+        }
+
+        const prevBlank = (i === 0) || (lines[i - 1].trim() === '');
+        const nextBlank = (i === lines.length - 1) || (lines[i + 1].trim() === '');
+        const isShortTitle = t.length <= 30 && !/[。！？.!?]$/.test(t);
+
+        // 首个短句 → 主标题
+        if (!hasTitle && prevBlank && isShortTitle) {
+          out.push('# ' + t);
+          hasTitle = true;
+          continue;
+        }
+        // 独立的短句（前后空行、无句末标点）→ 小标题
+        if (prevBlank && nextBlank && t.length <= 26 && !/[。！？，、；：.!?,;:]$/.test(t)) {
+          out.push('## ' + t);
+          continue;
+        }
+        out.push(rawLine);
+      }
+
+      this.markdownInput = out.join('\n');
+      this.showToast('已自动整理结构并套用模板', 'success');
+    },
+
     loadStarredStyles() {
       try {
         const saved = localStorage.getItem('starredStyles');
@@ -1812,10 +1862,24 @@ const markdown = \`![图片](img://\${imageId})\`;
           const containerStyle = styleConfig.styles.container;
           const paddingMatch = containerStyle.match(/padding:\s*([^;]+)/);
           const maxWidthMatch = containerStyle.match(/max-width:\s*([^;]+)/);
+          const fontMatch = containerStyle.match(/font-family:\s*([^;]+)/);
+          const fontSizeMatch = containerStyle.match(/font-size:\s*([^;]+)/);
+          const lineHeightMatch = containerStyle.match(/line-height:\s*([^;]+)/);
+          const colorMatch = containerStyle.match(/(?:^|[;\s])color:\s*([^;]+)/);
           const padding = paddingMatch ? paddingMatch[1].trim() : '40px 20px';
           const maxWidth = maxWidthMatch ? maxWidthMatch[1].trim() : '100%';
+          const fontFamily = fontMatch ? fontMatch[1].trim() : '';
+          const fontSize = fontSizeMatch ? fontSizeMatch[1].trim() : '';
+          const lineHeight = lineHeightMatch ? lineHeightMatch[1].trim() : '';
+          const textColor = colorMatch ? colorMatch[1].trim() : '';
 
+          // 字体 / 字号 / 行高 / 颜色写在最外层 section 上——公众号编辑器只保留最外层样式，
+          // 这样复制过去的字体才会和模板一致。
           section.setAttribute('style',
+            (fontFamily ? `font-family: ${fontFamily}; ` : '') +
+            (fontSize ? `font-size: ${fontSize}; ` : '') +
+            (lineHeight ? `line-height: ${lineHeight}; ` : '') +
+            (textColor ? `color: ${textColor}; ` : '') +
             `background-color: ${containerBg}; ` +
             `padding: ${padding}; ` +
             `max-width: ${maxWidth}; ` +
