@@ -1645,6 +1645,43 @@ const markdown = \`![图片](img://\${imageId})\`;
       this.showToast('已应用到选中图片', 'success');
     },
 
+    // 首行缩进：作用于选区所在的段落；没选区时作用于全文段落
+    applyIndent(value) {
+      const pv = this.$refs.previewScroll;
+      if (!pv) return;
+      const blocks = [];
+      const sel = window.getSelection();
+      const hasSel = sel && sel.rangeCount > 0 && !sel.isCollapsed && pv.contains(sel.anchorNode);
+
+      if (hasSel) {
+        const range = sel.getRangeAt(0);
+        pv.querySelectorAll('p, li, blockquote').forEach(el => {
+          try {
+            if (range.intersectsNode(el)) blocks.push(el);
+          } catch (e) {}
+        });
+        if (!blocks.length) {
+          // 选区可能就在单个文本节点里，向上找最近的块
+          let node = range.commonAncestorContainer;
+          if (node.nodeType === 3) node = node.parentElement;
+          while (node && node !== pv) {
+            if (/^(P|LI|BLOCKQUOTE|TD|TH)$/.test(node.tagName)) { blocks.push(node); break; }
+            node = node.parentElement;
+          }
+        }
+      } else {
+        pv.querySelectorAll('p, li').forEach(el => blocks.push(el));
+      }
+
+      const unique = Array.from(new Set(blocks));
+      if (!unique.length) {
+        this.showToast('没有可缩进的段落', 'error');
+        return;
+      }
+      unique.forEach(el => el.style.setProperty('text-indent', value, 'important'));
+      this.showToast(value && value !== '0' ? '已设置首行缩进' : '已取消首行缩进', 'success');
+    },
+
     // 读取预览区当前真实内容（含选区/图片的临时修改），供复制使用
     getLiveContent() {
       const pv = this.$refs.previewScroll;

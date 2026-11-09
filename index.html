@@ -408,6 +408,13 @@
             </div>
           </div>
           <div class="srow">
+            <label>首行缩进</label>
+            <div class="seg">
+              <button type="button" @click="applyIndent('2em')">缩进 2 字</button>
+              <button type="button" @click="applyIndent('0')">取消</button>
+            </div>
+          </div>
+          <div class="srow">
             <label>文字色</label>
             <div class="swatches">
               <button type="button" class="sw" style="--c:#3f3f46" @click="applyTextStyle('color', '#3f3f46')" title="深灰"></button>
@@ -489,7 +496,7 @@
   })();
 </script>
 
-<script src="styles.js?v=35" defer></script>
-<script src="app.js?v=35" defer></script>
+<script src="styles.js?v=36" defer></script>
+<script src="app.js?v=36" defer></script>
 </body>
 </html>
