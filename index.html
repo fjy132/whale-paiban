@@ -1,417 +1,389 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鲸鱼排版小工具 · 公众号排版</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%237C3AED%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2216%22 font-family=%22Arial%22 font-weight=%22bold%22 fill=%22%23fff%22 text-anchor=%22middle%22%3E%E9%B2%B8%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>鲸鱼排版小工具 - 免费微信公众号排版工具，Markdown一键排版</title>
+  <meta name="description" content="免费的微信公众号排版工具：粘贴文字或飞书、Notion、Word内容，实时预览20种排版样式，图片粘贴即用，一键复制到公众号编辑器，格式不丢。">
+  <link rel="canonical" href="https://fjy132.github.io/whale-paiban/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://fjy132.github.io/whale-paiban/">
+  <meta property="og:title" content="鲸鱼排版小工具 - 免费微信公众号排版工具">
+  <meta property="og:description" content="粘贴文字，选一个模板，一键复制到微信公众号。20种排版样式，免费开源，不用注册。">
+  <meta property="og:locale" content="zh_CN">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "鲸鱼排版小工具",
+  "url": "https://fjy132.github.io/whale-paiban/",
+  "description": "免费的微信公众号Markdown排版工具，实时预览20种排版样式，一键复制到公众号编辑器。",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Web",
+  "inLanguage": "zh-CN",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "author": { "@type": "Organization", "name": "鲸鱼排版小工具", "url": "https://fjy132.github.io/whale-paiban/" }
+}
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="alternate icon" href="favicon.svg">
+
+  <!-- Markdown 渲染库 / Vue（同源 vendor） -->
+  <script src="vendor/markdown-it.min.js" defer></script>
+  <script src="vendor/vue.global.prod.js" defer></script>
+
+  <style>
+    /* ============ 设计令牌 ============ */
+    :root {
+      --bg: #F3F4F6;
+      --panel: #FFFFFF;
+      --panel-2: #FAFAFB;
+      --ink: #18181B;
+      --text-2: #3F3F46;
+      --muted: #71717A;
+      --faint: #A1A1AA;
+      --hairline: #E4E4E7;
+      --hairline-2: #D4D4D8;
+      --primary: #7C3AED;
+      --primary-strong: #6D28D9;
+      --primary-soft: rgba(124, 58, 237, 0.12);
+      --pink: #EC4899;
+      --canvas-dot: rgba(24, 24, 27, 0.10);
+      --shadow-sm: 0 1px 2px rgba(16,24,40,0.05), 0 2px 8px rgba(16,24,40,0.05);
+      --shadow-md: 0 2px 6px rgba(16,24,40,0.06), 0 16px 40px rgba(16,24,40,0.12);
+      --r: 12px;
+      --r-sm: 8px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    svg { display: block; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(161,161,170,0.45); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(161,161,170,0.7); }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    .app-shell { height: 100vh; height: 100dvh; display: flex; flex-direction: column; }
+
+    /* ============ 顶部栏 ============ */
+    .topbar {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+      padding: 12px 20px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--hairline);
+      z-index: 40;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; user-select: none; }
+    .brand-mark {
+      width: 30px; height: 30px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--pink) 100%);
+      color: #fff; font-size: 15px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 10px var(--primary-soft);
+      transition: transform 0.3s var(--ease);
+    }
+    .brand:hover .brand-mark { transform: rotate(-8deg) scale(1.06); }
+    .brand-name { font-size: 16.5px; font-weight: 800; letter-spacing: 0.01em; }
+    .brand-slogan { font-size: 12px; color: var(--faint); font-weight: 600; margin-left: 2px; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      border: 1px solid transparent; border-radius: 9px;
+      font-size: 13.5px; font-weight: 600;
+      padding: 9px 15px; color: var(--ink);
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn.primary { background: var(--primary); color: #fff; box-shadow: 0 2px 10px var(--primary-soft); }
+    .btn.primary:hover { background: var(--primary-strong); }
+    .btn.primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn.ghost { background: var(--panel); border-color: var(--hairline-2); color: var(--text-2); }
+    .btn.ghost:hover { border-color: var(--faint); color: var(--ink); }
+    .btn.sm { padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+
+    /* ============ 三栏编辑器 ============ */
+    .editor {
+      flex: 1; min-height: 0;
+      display: grid;
+      grid-template-columns: 10% 50% 40%;
+    }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .panel-title { font-size: 14px; font-weight: 800; letter-spacing: 0.01em; }
+    .hint { font-size: 12px; color: var(--faint); font-weight: 600; }
+
+    /* ---- 左：模板库 ---- */
+    .left-panel {
+      display: flex; flex-direction: column; min-height: 0;
+      background: var(--panel); border-right: 1px solid var(--hairline);
+      padding: 12px 8px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .search {
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid var(--hairline-2); border-radius: 9px;
+      background: var(--panel-2); padding: 8px 11px; margin-bottom: 12px;
+      color: var(--faint);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      flex: none;
+    }
+    .search:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .search input { border: none; background: transparent; outline: none; font-family: inherit; font-size: 13px; color: var(--ink); width: 100%; }
+    .search input::placeholder { color: var(--faint); }
+
+    .tpl-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding: 2px; }
+    .tpl-card {
+      position: relative;
+      background: var(--panel-2); border: 1.5px solid var(--hairline);
+      border-radius: 7px;
+      cursor: pointer;
+      padding: 8px 9px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .tpl-card:hover { border-color: var(--faint); }
+    .tpl-card.selected { border-color: var(--primary); background: var(--primary-soft); }
+    .tpl-name { display: block; font-size: 11.5px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tpl-empty { text-align: center; color: var(--faint); font-size: 12px; padding: 30px 0; }
+    .tpl-foot { flex-shrink: 0; padding-top: 8px; font-size: 10.5px; color: var(--faint); text-align: center; }
+
+    /* ---- 中：画布 ---- */
+    .canvas { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .center-head {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 16px; background: var(--panel);
+      border-bottom: 1px solid var(--hairline); z-index: 5;
+    }
+    .center-title { font-size: 14px; font-weight: 800; letter-spacing: 0.01em; }
+    .canvas-dots {
+      flex: 1; min-width: 0; overflow: auto;
+      background-color: var(--bg);
+      background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px);
+      background-size: 18px 18px;
+      padding: 32px;
+      display: flex; justify-content: center; align-items: flex-start;
+    }
+    .page {
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(16,24,40,0.1), 0 12px 40px rgba(16,24,40,0.16);
+      width: 600px; max-width: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .preview-area { min-height: 600px; background: #fff; padding: 6px 10px; }
+    .preview-container { max-width: 720px; margin: 0 auto; padding: 20px 32px 48px 32px; line-height: 1.8; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 560px; color: var(--faint); font-size: 13.5px; text-align: center; padding: 0 40px; }
+
+    /* ---- 右：编辑 ---- */
+    .right-panel {
+      display: flex; flex-direction: column; min-height: 0;
+      background: var(--panel); border-left: 1px solid var(--hairline);
+      padding: 16px 14px;
+    }
+    .ins-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; flex: none; }
+    .ins-label { font-size: 11.5px; font-weight: 700; color: var(--faint); margin-right: 2px; }
+    .ins-btn {
+      border: 1px solid var(--hairline-2); background: var(--panel-2);
+      color: var(--text-2); font-size: 12px; font-weight: 600; font-family: inherit;
+      padding: 5px 10px; border-radius: 999px;
+      transition: all 0.18s ease;
+    }
+    .ins-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+    .input-area {
+      flex: 1; min-height: 0; resize: none;
+      border: 1px solid var(--hairline-2); border-radius: var(--r-sm);
+      background: var(--panel-2); color: var(--ink);
+      padding: 13px 14px; font-size: 13.5px; line-height: 1.85;
+      font-family: inherit; outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .input-area:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); background: var(--panel); }
+    .input-area::placeholder { color: var(--faint); }
+    .input-area.drag-over { border-color: var(--primary); background: var(--primary-soft); }
+    .right-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; flex: none; }
+    .word-count { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+    /* ============ 底部栏 ============ */
+    .footer {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding: 9px 20px; border-top: 1px solid var(--hairline);
+      font-size: 12px; color: var(--faint);
+    }
+    .foot-keys { font-size: 11px; color: var(--faint); }
+
+    /* ============ 响应式 ============ */
+    @media (max-width: 1180px) {
+      .editor { grid-template-columns: 12% 48% 40%; }
+    }
+    @media (max-width: 960px) {
+      .app-shell { height: auto; min-height: 100vh; }
+      .editor { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+      .left-panel { border-right: none; border-bottom: 1px solid var(--hairline); max-height: 260px; }
+      .right-panel { border-left: none; border-top: 1px solid var(--hairline); height: 320px; }
+      .canvas-dots { padding: 18px; }
+      .page { width: 100%; }
+      .brand-slogan { display: none; }
+    }
+  </style>
 </head>
 <body>
-<div class="app-shell">
+<div id="app" class="app-shell">
 
-  <!-- ===== 顶部工具栏 ===== -->
-  <header class="topbar" id="topbar">
+  <!-- ===== 顶部栏 ===== -->
+  <header class="topbar">
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">鲸</span>
       <span class="brand-name">鲸鱼排版小工具</span>
       <span class="brand-slogan">智能排版 · 一键美化 · 粘贴即用</span>
     </div>
-
-    <div class="tb-center">
-      <button type="button" class="icon-btn" id="undoBtn" title="撤销 (Ctrl+Z)" aria-label="撤销">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>
-      </button>
-      <button type="button" class="icon-btn" id="redoBtn" title="重做 (Ctrl+Shift+Z)" aria-label="重做">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg>
-      </button>
-      <span class="tb-divider" aria-hidden="true"></span>
-      <div class="tb-zoom">
-        <button type="button" class="icon-btn sm" id="zoomOut" title="缩小" aria-label="缩小">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14"/></svg>
-        </button>
-        <span class="zoom-label" id="zoomLabel">100%</span>
-        <button type="button" class="icon-btn sm" id="zoomIn" title="放大" aria-label="放大">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
-        </button>
-        <button type="button" class="icon-btn sm" id="zoomFit" title="适应窗口" aria-label="适应窗口">适应</button>
-      </div>
-    </div>
-
     <div class="top-actions">
-      <button type="button" class="icon-btn" id="themeToggle" title="切换深色 / 浅色" aria-label="切换深色 / 浅色">
-        <svg class="i-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        <svg class="i-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-      </button>
-      <button type="button" class="btn ghost" id="clearBtn">清空</button>
-      <button type="button" class="btn primary" id="copyBtn">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-        <span id="copyBtnText">复制到公众号</span>
+      <button type="button" class="btn ghost" @click="clearContent">清空</button>
+      <button type="button" class="btn primary" @click="copyToClipboard" :disabled="!renderedContent">
+        {{ copySuccess ? '✓ 已复制' : '复制到公众号' }}
       </button>
     </div>
   </header>
 
-  <!-- ===== 三栏布局：左输入 · 中预览 · 右模板 ===== -->
+  <!-- ===== 三栏编辑器 ===== -->
   <div class="editor">
 
-    <!-- 左：输入区 -->
-    <aside class="left-panel input-panel">
+    <!-- 左：模板库 -->
+    <aside class="left-panel">
       <div class="panel-head">
-        <span class="panel-title">文章内容</span>
-        <span class="hint word-count" id="wordCount">0 字</span>
+        <span class="panel-title">模板</span>
+        <span class="hint">{{ filteredStyles.length }}</span>
       </div>
-
-      <div class="ins-bar" aria-label="插入元素">
-        <span class="ins-label">插入</span>
-        <button type="button" class="ins-btn" id="insTitle" title="插入主标题">主标题</button>
-        <button type="button" class="ins-btn" id="insSub" title="插入小标题">小标题</button>
-        <button type="button" class="ins-btn" id="insQuote" title="插入引用">引用</button>
-        <button type="button" class="ins-btn" id="insList" title="插入列表项">列表</button>
-        <button type="button" class="ins-btn" id="insDivider" title="插入分隔线">分隔线</button>
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" v-model="tplSearch" placeholder="搜索" autocomplete="off">
       </div>
-
-      <textarea id="inputText" class="input-area" spellcheck="false" placeholder="在这里粘贴你的文章内容…">鲸鱼排版小工具使用指南
-这是一款把纯文本整理成精美排版的工具，专为公众号排版设计，无需设计基础，粘贴即可出稿。
-
-自动识别标题
-首行短句会自动变成"主标题"，独立的短句会自动变成"小标题"，不用手动标记。
-
-> 引用内容会自动排版成引用样式
-
-一、快速上手
-1、粘贴或输入你的文章
-2、选择喜欢的样式模板
-3、一键复制到公众号后台
-
-二、格式提示
-- 一级标题：使用"一、二、三……"
-- 二级标题：使用"（一）（二）……"
-- 三级标题：使用"1、2、3……"
-- 列表项：使用"-"开头
-- 引用：使用">"开头
-- 分隔线：单独一行输入"---"
-- 段落：空行自动分段；没有编号的文章直接按段落排版
-
----
-清空这段示例文字，粘贴你的内容，画布会实时预览效果。</textarea>
-
-      <div id="sourceArea" class="source-area" hidden>
-        <textarea readonly id="sourceText" spellcheck="false"></textarea>
-      </div>
-
-      <div class="acc" id="aiAcc">
-        <button type="button" class="acc-head" id="aiAccHead" aria-expanded="false">
-          <span class="acc-title">AI 结构化助手</span>
-          <span class="acc-chev">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </span>
-        </button>
-        <div class="acc-body" id="aiAccBody">
-          <div class="acc-inner">
-            <ol class="steps">
-              <li><span class="step-num">1</span>复制提示词发给豆包 / DeepSeek</li>
-              <li><span class="step-num">2</span>把原始文章也发给 AI</li>
-              <li><span class="step-num">3</span>将整理好的文字粘贴到下方</li>
-            </ol>
-            <div class="prompt-box">
-              <div class="prompt-text" id="aiPromptText">请将我提供的内容，重新整理成下面这套可被排版工具识别的纯文本格式：
-
-1.【主标题】原文若有标题，请放在第一行、后面空一行再接正文（工具会自动识别为"文章主标题"）；原文没有标题就不要添加。
-2.【一级标题】只有当原文本身就有"一、二、三……"这样的章节时，才保留这种编号标题；编号后跟简短标题（不超过20字），正文换行另起。
-3.【二级标题】原文有"（一）（二）（三）……"层级时保留，规则同一级标题。
-4.【三级标题】原文有"1、2、3……"层级时保留。
-5.【列表项】原文本身就是罗列短句时，用"-"开头。
-6.【段落】没有编号结构的正文，直接按段落输出，段落之间空一行即可。千万不要为了凑层级，给普通文章硬编"一、二、三"标题。
-7.【处理规则】严格保留原文核心信息，不随意删减、不改原意，只做排版层面的整理。原文里原本就有的小标题（短句），请单独放一行、前后留空行，工具会自动识别为标题样式。
-8.【绝对禁忌】严禁使用 Markdown 加粗符号（如 **粗体**）和 # 井号标题，直接输出纯文字；严禁输出"好的""如下所示"等客套话；严禁输出多个版本，只给一个最终结果。</div>
-              <button type="button" class="btn ghost sm" id="copyPromptBtn">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-                复制提示词
-              </button>
-            </div>
-          </div>
+      <div class="tpl-list">
+        <div
+          v-for="item in filteredStyles"
+          :key="item.key"
+          class="tpl-card"
+          :class="{ selected: currentStyle === item.key }"
+          @click="currentStyle = item.key"
+        >
+          <span class="tpl-name">{{ item.style.name }}</span>
         </div>
-      </div>
-
-      <div class="acc" id="iconAcc">
-        <button type="button" class="acc-head" id="iconAccHead" aria-expanded="false">
-          <span class="acc-title">图标库</span>
-          <span class="acc-chev">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </span>
-        </button>
-        <div class="acc-body" id="iconAccBody">
-          <div class="acc-inner">
-            <p class="sel-hint">点一下图标，就会插入到文章里光标所在的位置；也可以自己粘贴喜欢的表情/符号添加进来</p>
-            <div class="search icon-search">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              <input id="iconSearch" type="text" placeholder="搜索图标" autocomplete="off">
-            </div>
-            <div class="icon-grid" id="iconGrid"></div>
-            <div class="icon-custom">
-              <input id="iconCustomInput" type="text" class="text-input" placeholder="粘贴任意表情/符号，如 🚀 ➤ ✿ ❤" autocomplete="off">
-              <button type="button" class="btn ghost sm" id="iconAddBtn">加入图标库</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="acc open" id="typeAcc">
-        <button type="button" class="acc-head" id="typeAccHead" aria-expanded="true">
-          <span class="acc-title">文字样式</span>
-          <span class="acc-chev">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-          </span>
-        </button>
-        <div class="acc-body" id="typeAccBody">
-                    <div class="acc-inner type-body">
-            <div class="tb-tip">先选中文字，再点 B / I / U / 选中颜色可只改选中部分；其余选项作用于整篇</div>
-
-            <div class="tb-row">
-              <span class="tb-label">字号</span>
-              <div class="stepper sm"><button type="button" data-key="baseSize" data-d="-1">−</button><span id="v-baseSize">15px</span><button type="button" data-key="baseSize" data-d="1">+</button></div>
-              <span class="tb-label">标题字号</span>
-              <div class="stepper sm"><button type="button" data-key="h1Size" data-d="-1">−</button><span id="v-h1Size">21px</span><button type="button" data-key="h1Size" data-d="1">+</button></div>
-            </div>
-
-            <div class="tb-row">
-              <span class="tb-label">字体</span>
-              <select id="typeFont" class="tb-select">
-                <option value="default">跟随模板</option>
-                <option value="sans">无衬线</option>
-                <option value="yahei">微软雅黑</option>
-                <option value="hei">黑体 SimHei</option>
-                <option value="song">宋体 SimSun</option>
-                <option value="serif">衬线</option>
-                <option value="kai">楷体</option>
-                <option value="fangsong">仿宋</option>
-                <option value="pingfang">苹方 PingFang</option>
-                <option value="sourcehan">思源黑体</option>
-                <option value="sourcehanserif">思源宋体</option>
-                <option value="mono">等宽</option>
-                <option value="custom">自定义本地字体…</option>
-              </select>
-            </div>
-            <div class="tb-row">
-              <span class="tb-label">本地字体</span>
-              <input id="fontCustomInput" type="text" class="text-input" placeholder="电脑里安装的字体名，如 HarmonyOS Sans SC" autocomplete="off">
-            </div>
-
-            <div class="tb-row">
-              <span class="tb-label">行距</span>
-              <div class="stepper sm"><button type="button" data-key="lineHeight" data-d="-1">−</button><span id="v-lineHeight">1.8</span><button type="button" data-key="lineHeight" data-d="1">+</button></div>
-              <span class="tb-label">标题行距</span>
-              <div class="stepper sm"><button type="button" data-key="h1LineHeight" data-d="-1">−</button><span id="v-h1LineHeight">1.5</span><button type="button" data-key="h1LineHeight" data-d="1">+</button></div>
-            </div>
-
-            <div class="tb-row">
-              <span class="tb-label">字距</span>
-              <div class="stepper sm"><button type="button" data-key="letterSpacing" data-d="-1">−</button><span id="v-letterSpacing">0.3px</span><button type="button" data-key="letterSpacing" data-d="1">+</button></div>
-              <span class="tb-label">段距</span>
-              <div class="stepper sm"><button type="button" data-key="paraMargin" data-d="-1">−</button><span id="v-paraMargin">12px</span><button type="button" data-key="paraMargin" data-d="1">+</button></div>
-              <span class="tb-label">缩进</span>
-              <div class="stepper sm"><button type="button" data-key="textIndent" data-d="-1">−</button><span id="v-textIndent">0</span><button type="button" data-key="textIndent" data-d="1">+</button></div>
-            </div>
-
-            <div class="tb-row">
-              <span class="tb-label">对齐</span>
-              <div class="seg2">
-                <button type="button" class="on" data-align="justify">两端</button>
-                <button type="button" data-align="left">左</button>
-                <button type="button" data-align="center">居中</button>
-                <button type="button" data-align="right">右</button>
-              </div>
-            </div>
-
-            <div class="tb-row tb-color">
-              <span class="tb-label">正文色</span>
-              <div class="chips">
-                <button type="button" class="chip chip-text on" data-color="">跟随</button>
-                <button type="button" class="chip" data-color="#3F3F46" style="--c:#3F3F46" title="深灰"></button>
-                <button type="button" class="chip" data-color="#18181B" style="--c:#18181B" title="墨黑"></button>
-                <button type="button" class="chip" data-color="#2563EB" style="--c:#2563EB" title="蓝"></button>
-                <button type="button" class="chip" data-color="#16A34A" style="--c:#16A34A" title="绿"></button>
-                <button type="button" class="chip" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
-              </div>
-            </div>
-            <div class="tb-row tb-color">
-              <span class="tb-label">标题色</span>
-              <div class="chips">
-                <button type="button" class="chip chip-text on" data-target="title" data-color="">跟随</button>
-                <button type="button" class="chip" data-target="title" data-color="#18181B" style="--c:#18181B" title="墨黑"></button>
-                <button type="button" class="chip" data-target="title" data-color="#1F2937" style="--c:#1F2937" title="深灰蓝"></button>
-                <button type="button" class="chip" data-target="title" data-color="#7C3AED" style="--c:#7C3AED" title="紫"></button>
-                <button type="button" class="chip" data-target="title" data-color="#2563EB" style="--c:#2563EB" title="蓝"></button>
-                <button type="button" class="chip" data-target="title" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
-              </div>
-            </div>
-
-            <div class="sel-box tb-selbox">
-              <div class="tb-row tb-sep">
-                <span class="tb-label">选中文字</span>
-                <div class="stepper sm"><button type="button" data-sel="size" data-d="-1">−</button><span id="v-selSize">跟随</span><button type="button" data-sel="size" data-d="1">+</button></div>
-                <button type="button" class="tb-btn" id="selBold" title="加粗（先选中文字）">B</button>
-                <button type="button" class="tb-btn" id="tbItalic" title="斜体（先选中文字）">I</button>
-                <button type="button" class="tb-btn" id="tbUnderline" title="下划线（先选中文字）">U</button>
-              </div>
-              <div class="tb-row">
-                <span class="tb-label">选中字体</span>
-                <select id="selFont" class="tb-select">
-                  <option value="default">跟随</option>
-                  <option value="sans">无衬线</option>
-                  <option value="yahei">微软雅黑</option>
-                  <option value="hei">黑体 SimHei</option>
-                  <option value="song">宋体 SimSun</option>
-                  <option value="serif">衬线</option>
-                  <option value="kai">楷体</option>
-                  <option value="fangsong">仿宋</option>
-                  <option value="pingfang">苹方 PingFang</option>
-                  <option value="sourcehan">思源黑体</option>
-                  <option value="sourcehanserif">思源宋体</option>
-                  <option value="mono">等宽</option>
-                  <option value="custom">自定义本地字体…</option>
-                </select>
-              </div>
-              <div class="tb-row">
-                <span class="tb-label">本地字体</span>
-                <input id="selFontCustom" type="text" class="text-input" placeholder="电脑里的字体名，如 HarmonyOS Sans SC" autocomplete="off">
-              </div>
-              <div class="tb-row tb-color">
-                <span class="tb-label">选中颜色</span>
-                <div class="chips sel-chips">
-                  <button type="button" class="chip chip-text on" data-sel="color" data-color="">跟随</button>
-                  <button type="button" class="chip" data-sel="color" data-color="#3F3F46" style="--c:#3F3F46" title="深灰"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#18181B" style="--c:#18181B" title="墨黑"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#DC2626" style="--c:#DC2626" title="红"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#EA580C" style="--c:#EA580C" title="橙"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#D97706" style="--c:#D97706" title="金"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#92400E" style="--c:#92400E" title="棕"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#2563EB" style="--c:#2563EB" title="蓝"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#0891B2" style="--c:#0891B2" title="青"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#16A34A" style="--c:#16A34A" title="绿"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#7C3AED" style="--c:#7C3AED" title="紫"></button>
-                  <button type="button" class="chip" data-sel="color" data-color="#EC4899" style="--c:#EC4899" title="粉"></button>
-                  <label class="color-picker" title="自定义颜色">
-                    <input type="color" id="selColorCustom" value="#7C3AED">
-                  </label>
-                </div>
-              </div>
-              <div class="tb-row tb-actions">
-                <button type="button" class="btn ghost sm" id="selClear">清除选中格式</button>
-                <button type="button" class="btn ghost sm" id="typeReset">重置全部</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="risk-banner" id="riskBanner" hidden></div>
-
-      <div class="left-foot">
-        <button type="button" class="btn ghost sm" id="sourceToggle">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg>
-          HTML
-        </button>
-        <span class="foot-keys">Ctrl / ⌘ + Enter 一键复制</span>
+        <div v-if="filteredStyles.length === 0" class="tpl-empty">无匹配</div>
       </div>
     </aside>
 
-    <!-- 中：预览区 -->
-    <section class="canvas" id="canvas">
+    <!-- 中：画布 -->
+    <section class="canvas">
       <div class="center-head">
         <span class="center-title">预览效果</span>
-        <button type="button" class="btn primary sm" id="copyCenterBtn">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
-          <span>复制到公众号</span>
-        </button>
+        <button type="button" class="btn primary sm" @click="copyToClipboard" :disabled="!renderedContent">复制到公众号</button>
       </div>
-      <div class="canvas-dots" id="canvasDrop">
-        <div class="canvas-stage" id="canvasStage">
-          <div class="page" id="page">
-            <div id="previewArea" class="preview-area">
-              <p class="placeholder">左侧输入内容，这里实时预览排版效果</p>
+      <div class="canvas-dots">
+        <div class="page">
+          <div class="preview-area" ref="previewScroll">
+            <div v-if="!renderedContent" class="empty-state">
+              <p>在右侧粘贴文字，左边选一个模板，这里实时预览排版效果</p>
             </div>
+            <div v-else class="preview-container" v-html="renderedContent"></div>
           </div>
         </div>
-      </div>
-      <div class="drop-hint" id="dropHint" hidden>
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 3l-6.5 18-3-7.5L4 10.5z"/></svg>
-        松手应用此模板
       </div>
     </section>
 
-    <!-- 右：模板样式 -->
-    <aside class="right-panel tpl-panel">
+    <!-- 右：编辑 -->
+    <aside class="right-panel">
       <div class="panel-head">
-        <span class="panel-title">模板样式</span>
-        <span class="hint" id="templateCount"></span>
+        <span class="panel-title">文章内容</span>
+        <span class="word-count">{{ markdownInput.length }} 字</span>
       </div>
-      <div class="search">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input id="tplSearch" type="text" placeholder="搜索模板" autocomplete="off">
+      <div class="ins-bar">
+        <span class="ins-label">插入</span>
+        <button type="button" class="ins-btn" @click="insertMarkdown('# ')">主标题</button>
+        <button type="button" class="ins-btn" @click="insertMarkdown('## ')">小标题</button>
+        <button type="button" class="ins-btn" @click="insertMarkdown('&gt; ')">引用</button>
+        <button type="button" class="ins-btn" @click="insertMarkdown('- ')">列表</button>
+        <button type="button" class="ins-btn" @click="insertMarkdown('---\n')">分隔线</button>
       </div>
-      <div class="pills" id="categoryPills"></div>
-      <div class="tpl-list" id="templateGrid"></div>
-      <div class="tpl-foot">点击应用 · 拖动到画布 · 悬停可预览</div>
+      <textarea
+        ref="editorTextarea"
+        v-model="markdownInput"
+        class="input-area"
+        :class="{ 'drag-over': isDraggingOver }"
+        @paste="handleSmartPaste"
+        @drop="handleDrop"
+        @dragover="handleDragOver"
+        @dragenter="handleDragEnter"
+        @dragleave="handleDragLeave"
+        placeholder="在这里粘贴你的文章内容……
+支持从飞书 / Notion / Word 直接粘贴，也可以拖拽或粘贴图片。"
+        spellcheck="false"
+      ></textarea>
+      <div class="right-foot">
+        <span class="word-count">{{ markdownInput.length }} 字</span>
+      </div>
     </aside>
   </div>
 
+  <!-- ===== 底部栏 ===== -->
   <footer class="footer">
     <span>鲸鱼排版小工具 · 内容仅在本地处理，不会上传</span>
-    <div class="foot-right">
-      <button type="button" class="qr-btn" id="qrBtn">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="3" height="3"/><rect x="18" y="18" width="3" height="3"/></svg>
-        手机扫码访问
-      </button>
-    </div>
-    <div class="qr-pop" id="qrPop" hidden>
-      <img src="qr.png" alt="手机扫码访问鲸鱼排版小工具" width="132" height="132">
-      <div class="qr-url">fjy132.github.io/whale-paiban</div>
-      <button type="button" class="btn ghost sm" id="qrCopyBtn">复制网址</button>
-    </div>
+    <span class="foot-keys">选中文字后点「复制到公众号」即可</span>
   </footer>
+
+  <!-- Toast 提示 -->
+  <div v-if="toast.show" class="toast" :class="toast.type">{{ toast.message }}</div>
 </div>
 
-<!-- 模板详情弹窗 -->
-<div class="td-overlay" id="tdOverlay" hidden>
-  <div class="td-modal" role="dialog" aria-modal="true" aria-label="模板预览">
-    <button type="button" class="td-close" id="tdClose" aria-label="关闭">×</button>
-    <div class="td-main">
-      <button type="button" class="td-nav td-prev" id="tdPrev" aria-label="上一个模板">‹</button>
-      <div class="td-preview" id="tdPreview"></div>
-      <button type="button" class="td-nav td-next" id="tdNext" aria-label="下一个模板">›</button>
-    </div>
-    <div class="td-info">
-      <div class="td-meta">
-        <span class="td-name" id="tdName"></span>
-        <span class="td-cat" id="tdCat"></span>
-      </div>
-      <div class="td-desc" id="tdDesc"></div>
-      <button type="button" class="btn primary td-use" id="tdUse">使用此模板</button>
-    </div>
-  </div>
-</div>
+<style>
+  /* Toast（放在最后覆盖，避免被上方样式影响） */
+  .toast {
+    position: fixed; top: 50%; left: 50%; z-index: 1000;
+    transform: translate(-50%, -50%) scale(0.96);
+    background: #fff; color: #18181B;
+    border: 1px solid #D4D4D8; border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(16,24,40,0.06), 0 16px 40px rgba(16,24,40,0.16);
+    padding: 20px 30px; text-align: center; min-width: 200px;
+    font-size: 13.5px; font-weight: 600;
+    animation: toastIn 0.25s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .toast.error { color: #B45309; }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+</style>
 
-<div id="hoverPreview" class="hover-preview" hidden>
-  <div class="hp-head">
-    <span class="hp-name" id="hpName"></span>
-    <span class="hp-cat" id="hpCategory"></span>
-    <span class="hp-hint">点击应用</span>
-  </div>
-  <div class="hp-body" id="hpBody"></div>
-</div>
+<!-- 静态外壳 textarea 交接（供 app.js 读取草稿） -->
+<script>
+  (function () {
+    try {
+      var ta = document.querySelector('#app .input-area');
+      if (ta) {
+        window.__shellTextarea = ta;
+        window.__shellReadyTime = performance.now();
+      }
+    } catch (e) {}
+  })();
+</script>
 
-<div class="toast-overlay" id="toastOverlay" hidden></div>
-<div class="toast" id="toast" role="status">
-  <div class="toast-icon" id="toastIcon">
-    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M4 12.5l5 5L20 7"/></svg>
-  </div>
-  <div class="toast-title" id="toastTitle">复制成功</div>
-  <div class="toast-message" id="toastMsg"></div>
-</div>
-
-<script src="js/formatter.js"></script>
-<script src="js/templates.js"></script>
-<script src="js/app.js"></script>
+<script src="styles.js?v=31" defer></script>
+<script src="app.js?v=31" defer></script>
 </body>
 </html>
