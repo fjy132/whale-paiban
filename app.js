@@ -724,6 +724,27 @@ const editorApp = createApp({
       return Object.keys(this.STYLES)
         .filter((key) => !q || (this.STYLES[key].name || '').toLowerCase().includes(q))
         .map((key) => ({ key, style: this.STYLES[key] }));
+    },
+    // 让「文章内容」输入框的字体和当前模板保持一致
+    inputAreaStyle() {
+      const style = (this.STYLES[this.currentStyle] && this.STYLES[this.currentStyle].styles) || {};
+      const container = style.container || '';
+      const pick = (prop) => {
+        const m = container.match(new RegExp(prop + ':\\s*([^;]+)'));
+        return m ? m[1].trim() : '';
+      };
+      const ff = pick('font-family');
+      const fs = pick('font-size');
+      const lh = pick('line-height');
+      const color = pick('(?:^|[;\\s])color');
+      const out = {};
+      if (ff) out.fontFamily = ff;
+      if (fs) out.fontSize = fs;
+      if (lh) out.lineHeight = lh.replace(/\s*!important\s*/i, '');
+      if (color) out.color = color.replace(/\s*!important\s*/i, '');
+      // 应用了自定义颜色时以自定义为准
+      if (this.styleOverride && this.styleOverride.textColor) out.color = this.styleOverride.textColor;
+      return out;
     }
   },
 
